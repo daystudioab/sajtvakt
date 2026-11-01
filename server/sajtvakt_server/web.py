@@ -375,6 +375,8 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         recent_trouble = any(x["kind"] in ("miss", "roll") for x in nights[-2:])
         if row["up"] == 0:
             out["tone"] = "bad"
+        elif row["maintenance"]:
+            out["tone"] = "maint"
         elif (row["ssl_days"] is not None and row["ssl_days"] < 14) or stale or recent_trouble:
             out["tone"] = "warn"
         else:
@@ -400,7 +402,8 @@ def dashboard(request: Request):
     sites = [_site_summary(r, backup_days.get(r["id"]), rolled_days.get(r["id"]), today, backup_hour) for r in db.sites()]
 
     attention = _attention()
-    down = [s["row"] for s in sites if s["row"]["up"] == 0]
+    down = [s["row"] for s in sites if s["row"]["up"] == 0
+            and not (s["row"]["maintenance"] and s["row"]["last_code"] == 503)]
     log = db.q("SELECT e.*, s.name AS site_name FROM events e LEFT JOIN sites s ON s.id = e.site_id "
                "WHERE e.title != 'Backup klar' ORDER BY e.id DESC LIMIT 8")
     night = {
@@ -599,6 +602,9 @@ def _set_maintenance(row, on: bool) -> None:
     if bool(row["maintenance"]) == on:
         return
     db.run("UPDATE sites SET maintenance = ? WHERE id = ?", 1 if on else 0, row["id"])
+    if on and row["up"] == 0 and row["last_code"] == 503:
+        # Nere för att den visade underhållssidan – räknas som uppe direkt, så att varningen försvinner.
+        db.run("UPDATE sites SET up = 1, fails = 0, down_since = NULL WHERE id = ?", row["id"])
     db.event(row["id"], "info", "Underhållsläge påslaget" if on else "Underhållsläge avstängt",
              "Underhållssidan (503) räknas inte som nere. Larm går fortfarande om sajten inte svarar alls eller visar fel."
              if on else "")

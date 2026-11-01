@@ -338,3 +338,5 @@ form.search.big .btn { min-height: 46px; }
 .chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); color: var(--ink-2); font-size: 13px; }
 .chip:hover { color: var(--ink); border-color: #3a4650; }
 @media (max-width: 860px) { form.search:not(.big) { width: 100%; } form.search:not(.big) input[type=search] { width: 100%; } }
+.site-card.maint { border-color: #2f6396; }
+.site-card.maint:hover { border-color: #4a82bb; }
