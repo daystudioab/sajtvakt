@@ -19,6 +19,9 @@
       <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
         Översikt</a>
+      <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">
+        {{ icon("plugins") }}
+        Tillägg</a>
       <a href="/handelser" class="{{ 'on' if request.url.path == '/handelser' }}">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Händelser{% if side.attention %}<span class="count" aria-label="{{ side.attention }} att titta på">{{ side.attention }}</span>{% endif %}</a>

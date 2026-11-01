@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Tillägg · Sajtvakt{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Tillägg på alla sajter</h1>
+    <div class="sub muted small">{{ groups | length }} olika tillägg på {{ total_sites }} sajter · enligt senast hämtade status{% if unknown %} · {{ unknown | length }} sajt{{ 'er' if unknown | length > 1 }} saknar status{% endif %}</div></div>
+</div>
+
+<form class="search big" method="get" action="/tillagg" role="search">
+  <label class="sr" for="q">Sök tillägg</label>
+  {{ icon("search") }}
+  <input id="q" type="search" name="q" value="{{ q }}" placeholder="Sök på namn, t.ex. Wordfence, Yoast eller elementor" autofocus autocomplete="off">
+  <button class="btn primary">Sök</button>
+</form>
+
+{% if q %}
+  {% if not matches %}
+  <div class="card empty"><h2>Inget tillägg matchar "{{ q }}"</h2><p>Det finns inte på någon av sajterna – eller heter något annat. Prova en del av namnet.</p></div>
+  {% endif %}
+  {% for g in matches[:30] %}
+  <section class="card section plugin-group">
+    <div class="card-head">
+      <h2>{{ icon("plugins") }}{{ g.name }}</h2>
+      <span class="muted small">på {{ g.on | length }} av {{ total_sites }} sajter{% if g.updates %} · <span class="tag warn">{{ g.updates }} väntar på uppdatering</span>{% endif %}</span>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Sajt</th><th>Version</th><th>Läge</th></tr></thead>
+      <tbody>
+      {% for x in g.on %}
+        <tr>
+          <td><a href="/sajt/{{ x.site.id }}" class="site-link">{{ x.site.name }}</a> <span class="muted small mono hide-sm">{{ x.site.url | host }}</span></td>
+          <td class="mono nowrap">{{ x.version }}{% if x.new %} <span class="muted">→ {{ x.new }}</span>{% endif %}{% if x.locked %} <span class="badge warn">låst</span>{% endif %}</td>
+          <td class="nowrap">{% if x.active %}<span class="badge ok">aktivt</span>{% else %}<span class="badge">inaktivt</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <div class="card-body missing">
+      {% if g.missing %}
+      <span class="k">Saknas på {{ g.missing | length }}:</span>
+      {% for r in g.missing %}<a class="chip" href="/sajt/{{ r.id }}">{{ r.name }}</a>{% endfor %}
+      {% else %}
+      <span class="k ok">Finns på alla sajter.</span>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+  {% if matches | length > 30 %}<p class="muted small">Visar 30 av {{ matches | length }} – sök mer exakt.</p>{% endif %}
+{% else %}
+  <section class="card section">
+    <div class="card-head"><h2>{{ icon("plugins") }}Alla tillägg</h2><span class="muted small">flest sajter först · klicka för detaljer</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tillägg</th><th class="r">Finns på</th><th class="r">Aktivt på</th><th class="r">Saknas på</th><th class="r hide-sm">Uppdateringar</th></tr></thead>
+      <tbody>
+      {% for g in groups %}
+        <tr>
+          <td><a class="site-link" href="/tillagg?q={{ g.key | urlencode }}">{{ g.name }}</a></td>
+          <td class="r mono">{{ g.on | length }}</td>
+          <td class="r mono">{{ g.active_count }}</td>
+          <td class="r mono {{ 'dimmed' if not g.missing }}">{{ g.missing | length }}</td>
+          <td class="r hide-sm">{% if g.updates %}<span class="tag warn">{{ g.updates }}</span>{% else %}<span class="dimmed mono">–</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+{% endif %}
+{% endblock %}

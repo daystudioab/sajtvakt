@@ -6,7 +6,13 @@
     <h1>Översikt</h1>
     <span class="mono muted">{{ now | dayline }}</span>
   </div>
-  <div class="actions"><a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a></div>
+  <div class="actions">
+    <form class="search" method="get" action="/tillagg" role="search">
+      <label class="sr" for="sok">Sök tillägg på alla sajter</label>
+      <input id="sok" type="search" name="q" placeholder="Sök tillägg på alla sajter …" autocomplete="off">
+    </form>
+    <a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a>
+  </div>
 </div>
 
 {% if not mail_ok %}

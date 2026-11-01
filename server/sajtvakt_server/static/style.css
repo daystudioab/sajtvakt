@@ -238,7 +238,7 @@ td.r, th.r { text-align: right; }
 .btn[disabled] { opacity: .45; cursor: default; filter: none; }
 label { display: block; font-weight: 500; font-size: 14px; margin: 14px 0 6px; color: var(--ink-2); }
 .hint { color: var(--muted); font-size: 13px; margin-top: 5px; }
-input[type=text], input[type=password], input[type=email], input[type=number], select, textarea {
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=search], select, textarea {
   width: 100%; font: inherit; color: var(--ink); background: var(--surface-2);
   border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
 }
@@ -321,3 +321,20 @@ h2 .ic { width: 17px; height: 17px; flex: none; color: var(--accent); opacity: .
 .dot.maint { background: var(--link); box-shadow: 0 0 0 3px #12263a; }
 .state.maint { color: var(--link); }
 .tag.maint, .badge.maint { color: var(--link); background: #12263a; }
+
+/* ---- sök tillägg ---- */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+form.search { margin: 0; position: relative; display: flex; align-items: center; gap: 8px; }
+form.search input[type=search] { min-height: 40px; width: 280px; max-width: 100%; }
+form.search.big { margin-bottom: 18px; }
+form.search.big .ic { position: absolute; left: 13px; width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+form.search.big input[type=search] { width: auto; flex: 1 1 auto; min-height: 46px; padding-left: 40px; font-size: 16px; }
+form.search.big .btn { min-height: 46px; }
+.site-link { color: var(--ink); font-weight: 500; }
+.site-link:hover { color: var(--link); }
+.missing { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.missing .k { font-size: 13px; color: var(--warn); margin-right: 4px; }
+.missing .k.ok { color: var(--ok); }
+.chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); color: var(--ink-2); font-size: 13px; }
+.chip:hover { color: var(--ink); border-color: #3a4650; }
+@media (max-width: 860px) { form.search:not(.big) { width: 100%; } form.search:not(.big) input[type=search] { width: 100%; } }

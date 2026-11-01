@@ -120,6 +120,7 @@ _ICON_PATHS = {
     "lock": '<rect x="3" y="7" width="10" height="7" rx="1.3"/><path d="M5.3 7V5a2.7 2.7 0 0 1 5.4 0v2"/>',
     "clock": '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.5"/>',
     "info": '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.9v.1"/>',
+    "search": '<circle cx="7" cy="7" r="4.8"/><path d="m10.5 10.5 3.7 3.7"/>',
 }
 
 
@@ -777,6 +778,50 @@ def settings_password(request: Request, csrf_token: str = Form(""), current: str
     db.set_setting("admin_hash", _hash_password(new))
     db.run("DELETE FROM sessions WHERE token != ?", s["token"])
     return back("/installningar", "Lösenordet är bytt. Andra inloggningar har loggats ut.")
+
+
+# ====================================================================== tillägg på alla sajter
+
+def _inventory() -> tuple[list[dict], list]:
+    """Alla tillägg på alla sajter, grupperade per tilläggsmapp (samma tillägg = samma mapp)."""
+    sites = db.sites()
+    groups: dict[str, dict] = {}
+    for row in sites:
+        st = jobs.status_of(row)
+        if not st:
+            continue
+        for p in st.get("plugins", []):
+            key = p["file"].split("/")[0]
+            g = groups.setdefault(key, {"key": key, "names": {}, "on": []})
+            g["names"][p["name"]] = g["names"].get(p["name"], 0) + 1
+            g["on"].append({"site": row, "version": p["version"], "active": p["active"],
+                            "new": (p.get("update") or {}).get("version"), "locked": p["file"] in json.loads(row["skip_plugins"] or "[]")})
+    known = [r for r in sites if r["status_json"]]
+    out = []
+    for g in groups.values():
+        g["name"] = max(g["names"], key=g["names"].get)
+        have = {x["site"]["id"] for x in g["on"]}
+        g["missing"] = [r for r in known if r["id"] not in have]
+        g["on"].sort(key=lambda x: x["site"]["name"].lower())
+        g["active_count"] = sum(1 for x in g["on"] if x["active"])
+        g["updates"] = sum(1 for x in g["on"] if x["new"])
+        out.append(g)
+    out.sort(key=lambda g: (-len(g["on"]), g["name"].lower()))
+    return out, [r for r in sites if not r["status_json"]]
+
+
+@app.get("/tillagg", response_class=HTMLResponse)
+def plugins_page(request: Request, q: str = ""):
+    auth(request)
+    groups, unknown = _inventory()
+    q = q.strip()
+    if q:
+        ql = q.lower()
+        matches = [g for g in groups if ql in g["name"].lower() or ql in g["key"].lower()]
+    else:
+        matches = []
+    total_sites = len(db.sites()) - len(unknown)
+    return render(request, "plugins.html", q=q, groups=groups, matches=matches, unknown=unknown, total_sites=total_sites)
 
 
 @app.get("/handelser", response_class=HTMLResponse)
