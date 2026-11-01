@@ -4,7 +4,7 @@
 {% set busy = running | length > 0 %}
 <div class="head">
   <div>
-    <h1><span class="dot {{ 'up' if site.up == 1 else 'down' if site.up == 0 }}"></span>{{ site.name }}</h1>
+    <h1><span class="dot {{ 'down' if site.up == 0 else 'maint' if site.maintenance else 'up' if site.up == 1 }}"></span>{{ site.name }}{% if site.maintenance %} <span class="badge maint" style="vertical-align:4px">underhållsläge</span>{% endif %}</h1>
     <div class="sub muted small">
       <a href="{{ site.url }}" target="_blank" rel="noopener">{{ site.url | replace('https://','') | replace('http://','') | trim('/') }}</a>
       {% if st %} · WordPress {{ st.versions.wordpress }} · PHP {{ st.versions.php }} · Sajtvakt {{ st.versions.sajtvakt }}{% endif %}
@@ -215,7 +215,8 @@
     <div class="card-head"><h2>{{ icon("status") }}Status</h2></div>
     <table><tbody>
       <tr><td class="muted">Tillgänglighet</td><td class="r">
-        {% if site.up == 1 %}<span class="badge ok">uppe</span>{% elif site.up == 0 %}<span class="badge bad">nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
+        {% if site.up == 1 and site.maintenance %}<span class="badge maint">underhållsläge</span>
+        {% elif site.up == 1 %}<span class="badge ok">uppe</span>{% elif site.up == 0 %}<span class="badge bad">nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
       <tr><td class="muted">Svarstid</td><td class="r">{{ (site.response_ms ~ ' ms') if site.response_ms else '–' }}</td></tr>
       <tr><td class="muted">SSL-certifikat</td><td class="r">{% if site.ssl_days is none %}–{% elif site.ssl_days < 0 %}<span class="badge bad">kunde inte kontrolleras</span>{% else %}{{ site.ssl_days }} dagar kvar{% endif %}</td></tr>
       <tr><td class="muted">Senaste backup</td><td class="r">{{ site.last_backup | ago }}</td></tr>
@@ -251,6 +252,8 @@
         <label for="name" style="margin-top:0">Namn</label>
         <input id="name" type="text" name="name" value="{{ site.name }}">
         <label class="check"><input type="checkbox" name="auto_update" value="1" {{ 'checked' if site.auto_update }}> Uppdatera automatiskt efter nattens backup</label>
+        <label class="check"><input type="checkbox" name="maintenance" value="1" {{ 'checked' if site.maintenance }}> Underhållsläge</label>
+        <div class="hint" style="margin:-4px 0 0 25px">Sajten visar en underhållssida med flit. Sajtvakt larmar inte för den, men larmar om sajten slutar svara helt eller visar fel. Backup och uppdateringar fortsätter.</div>
         <p><button class="btn small">Spara</button></p>
       </form>
       <details class="more"><summary>Ny anslutningsnyckel …</summary>

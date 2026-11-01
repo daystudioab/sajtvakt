@@ -316,3 +316,8 @@ details.use summary::-webkit-details-marker { display: none; }
 /* ---- ikoner före rubriker ---- */
 h2:has(> .ic) { display: flex; align-items: center; gap: 9px; }
 h2 .ic { width: 17px; height: 17px; flex: none; color: var(--accent); opacity: .85; }
+
+/* ---- underhållsläge ---- */
+.dot.maint { background: var(--link); box-shadow: 0 0 0 3px #12263a; }
+.state.maint { color: var(--link); }
+.tag.maint, .badge.maint { color: var(--link); background: #12263a; }

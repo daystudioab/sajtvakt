@@ -252,8 +252,12 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
 
 # ====================================================================== health
 
-def check_http(url: str) -> dict:
-    """Hämta sidan som en besökare. Trasig = går inte att nå, 5xx eller WordPress felsida."""
+MAINT_WORDS = (b"maintenance", b"underh\xc3\xa5ll", b"coming soon", b"kommer snart", b"under construction")
+
+
+def check_http(url: str, maintenance: bool = False) -> dict:
+    """Hämta sidan som en besökare. Trasig = går inte att nå, 5xx eller WordPress felsida.
+    I underhållsläge räknas en underhållssida (503) som att sajten fungerar."""
     sep = "&" if "?" in url else "?"
     req = urllib.request.Request(f"{url}{sep}sajtvakt-check={int(time.time())}",
                                  headers={"User-Agent": "Sajtvakt-monitor/0.1", "Cache-Control": "no-cache"})
@@ -262,15 +266,23 @@ def check_http(url: str) -> dict:
         with urllib.request.urlopen(req, timeout=30) as r:
             body = r.read(400_000)
             code = r.status
+            retry_after = bool(r.headers.get("Retry-After"))
     except urllib.error.HTTPError as e:
         body = e.read(400_000) if e.fp else b""
         code = e.code
+        retry_after = bool(e.headers.get("Retry-After")) if e.headers else False
     except Exception as e:
         return {"ok": False, "code": None, "ms": None, "error": str(e)[:200]}
     ms = int((time.time() - t) * 1000)
     wp_error = b'id="error-page"' in body or b"wp-die-message" in body
-    return {"ok": code < 500 and not wp_error, "code": code, "ms": ms, "bytes": len(body),
-            "error": "WordPress visar en felsida" if wp_error else None}
+    low = body[:200_000].lower()
+    # 503 som ser ut som en underhållssida (Elementor, WP Maintenance Mode, SeedProd m.fl.).
+    maint_like = code == 503 and (retry_after or any(w in low for w in MAINT_WORDS))
+    ok = code < 500 and not wp_error
+    if maintenance and code == 503 and not wp_error:
+        ok = True
+    return {"ok": ok, "code": code, "ms": ms, "bytes": len(body), "maintenance": maint_like,
+            "error": "WordPress visar en felsida" if wp_error else ("underhållssida (503)" if maint_like else None)}
 
 
 def healthy(after: dict, before: dict | None) -> bool:
@@ -286,10 +298,14 @@ def healthy(after: dict, before: dict | None) -> bool:
 
 def monitor_site(site_id: int) -> None:
     row = db.site(site_id)
-    res = check_http(row["url"])
+    in_maint = bool(row["maintenance"])
+    res = check_http(row["url"], maintenance=in_maint)
     now = int(time.time())
+    db.run("UPDATE sites SET last_code = ? WHERE id = ?", res["code"], site_id)
     if res["ok"]:
-        if row["up"] == 0 and row["down_since"]:
+        if row["up"] == 0 and row["down_since"] and in_maint and res["code"] == 503:
+            db.event(site_id, "info", "Underhållsläge", "Sajten visar sin underhållssida. Sajtvakt larmar inte för den.")
+        elif row["up"] == 0 and row["down_since"]:
             mins = max(1, (now - row["down_since"]) // 60)
             db.event(site_id, "ok", "Sajten är uppe igen", f"Var nere i ungefär {mins} min.")
             mailer.send(f"Uppe igen – {row['name']}", f"{row['url']} svarar igen efter ungefär {mins} minuter.")
@@ -300,8 +316,10 @@ def monitor_site(site_id: int) -> None:
         since = now - config.MONITOR_INTERVAL
         reason = res["error"] or f"HTTP {res['code']}"
         db.run("UPDATE sites SET up=0, fails=?, down_since=?, checked_at=? WHERE id=?", fails, since, now, site_id)
-        db.event(site_id, "error", "Sajten är nere", reason)
-        mailer.send(f"NERE – {row['name']}", f"{row['url']} svarar inte som den ska ({reason}).\n\nSajtvakt kollar igen var {config.MONITOR_INTERVAL // 60}:e minut och mejlar när den är uppe.")
+        hint = ("\n\nSidan ser ut som en underhållssida. Har du satt sajten i underhållsläge med flit? Slå då på "
+                f"Underhållsläge för sajten i panelen, så slutar larmen: {config.PUBLIC_URL}/sajt/{site_id}") if res.get("maintenance") else ""
+        db.event(site_id, "error", "Sajten är nere", reason + (" – slå på Underhållsläge för sajten om det är med flit." if hint else ""))
+        mailer.send(f"NERE – {row['name']}", f"{row['url']} svarar inte som den ska ({reason}).\n\nSajtvakt kollar igen var {config.MONITOR_INTERVAL // 60}:e minut och mejlar när den är uppe.{hint}")
     else:
         db.run("UPDATE sites SET fails=?, checked_at=? WHERE id=?", fails, now, site_id)
 
@@ -401,9 +419,11 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
     if not items:
         return {"updated": [], "notes": notes, "message": "Inget att uppdatera"}
 
-    baseline = check_http(row["url"])
+    maint = bool(row["maintenance"])
+    baseline = check_http(row["url"], maint)
     if not baseline["ok"]:
-        raise SajtvaktError("site_down", "Sajten fungerar inte redan före uppdateringen – uppdaterar inte.")
+        raise SajtvaktError("site_down", "Sajten fungerar inte redan före uppdateringen – uppdaterar inte."
+                            + (" Den visar en underhållssida – slå på Underhållsläge för sajten om det är med flit." if baseline.get("maintenance") else ""))
 
     recent = db.one("SELECT id FROM backups WHERE site_id=? AND status='done' AND created > ?", site_id, int(time.time()) - 2 * 3600)
     if not recent:
@@ -432,8 +452,9 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
             log.warning("Uppdateringsanropet avbröts: %s", e)
             return {"results": [], "ref": ref}, False
         res["ref"] = ref
-        after = check_http(row["url"])
-        ok = healthy(after, baseline) and (res.get("check", {}).get("ok") is not False)
+        after = check_http(row["url"], maint)
+        pc = res.get("check") or {}
+        ok = healthy(after, baseline) and (pc.get("ok") is not False or (maint and pc.get("code") == 503))
         if ok:
             # Startsidan kan komma från en cache – kontrollera att WordPress självt laddar (adminläge).
             try:
@@ -447,7 +468,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
             return _rollback(s, res["ref"])
         except SajtvaktError:
             # Finns ingen ögonblicksbild hann inget ändras – det räcker om sajten fungerar.
-            if healthy(check_http(row["url"]), baseline):
+            if healthy(check_http(row["url"], maint), baseline):
                 return "behövdes inte"
             raise
 
@@ -464,7 +485,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
                 how = undo(res)
             except SajtvaktError:
                 how = None
-            if how is None or not healthy(check_http(row["url"]), baseline):
+            if how is None or not healthy(check_http(row["url"], maint), baseline):
                 db.event(site_id, "error", "Sajten är trasig efter uppdatering och kunde inte återställas automatiskt",
                          "Återställ från backupen i panelen.")
                 mailer.send(f"AKUT – {row['name']} trasig efter uppdatering",
@@ -500,7 +521,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
                 how = undo(res)
             except SajtvaktError:
                 how = None
-            if how is None or not healthy(check_http(row["url"]), baseline):
+            if how is None or not healthy(check_http(row["url"], maint), baseline):
                 db.event(site_id, "error", "Sajten fungerar inte efter WordPress-uppdateringen",
                          "Den automatiska återställningen hjälpte inte. Återställ från backupen före uppdateringen.")
                 mailer.send(f"AKUT – {row['name']} trasig efter WordPress-uppdatering",
@@ -560,11 +581,12 @@ def do_remove(site_id: int, kind: str, slug: str, job_id: int | None = None) -> 
     row = db.site(site_id)
     s = client(row)
     progress(job_id, "Sparar en kopia och tar bort …")
-    baseline = check_http(row["url"])
+    maint = bool(row["maintenance"])
+    baseline = check_http(row["url"], maint)
     res = s.request("remove", {"type": kind, "slug": slug, "ref": secrets.token_hex(16)}, timeout=600)
     name = res.get("name") or slug
     refresh_status(site_id, job_id, refresh=False)
-    after = check_http(row["url"])
+    after = check_http(row["url"], maint)
     what = "tillägget" if kind == "plugin" else "temat"
     if baseline["ok"] and not healthy(after, baseline):
         db.event(site_id, "error", f"Sajten fungerar inte efter att {name} togs bort",
@@ -636,7 +658,7 @@ def do_push(backup_id: int, target_id: int, mode: str, job_id: int | None = None
         db.event(target_id, "ok", "Återställd från backup", f"Backup från {when}.")
 
     refresh_status(target_id, job_id, refresh=False)
-    check = check_http(target["url"])
+    check = check_http(target["url"], bool(target["maintenance"]))
     if not check["ok"]:
         db.event(target_id, "warning", "Sajten svarar inte som väntat efter återställningen", check.get("error") or f"HTTP {check['code']}")
     return {"message": "Klart", "home": res["result"].get("home"), "check": check}

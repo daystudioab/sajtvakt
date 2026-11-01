@@ -98,6 +98,8 @@ MIGRATIONS = {
     # kolumn: definition (läggs till i befintliga databaser)
     "endpoint": "TEXT NOT NULL DEFAULT 'admin-post'",
     "rescue_url": "TEXT",
+    "maintenance": "INTEGER NOT NULL DEFAULT 0",
+    "last_code": "INTEGER",
 }
 
 

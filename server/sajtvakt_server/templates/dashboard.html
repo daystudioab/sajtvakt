@@ -21,8 +21,16 @@
     <div class="h">{{ warn_icon }}<h2 id="attn-h">{% if down | length == 1 %}{{ down[0].name }} är nere{% else %}{{ down | length }} sajter är nere{% endif %}</h2>
       <span class="when">sedan {{ down[0].down_since | ts('%H:%M') }}</span></div>
     <p>{% for d in down %}{{ d.name }} svarar inte som den ska{% if d.last_error %} ({{ d.last_error }}){% endif %}.{{ '\n' if not loop.last }}{% endfor %}
-Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 1 else 'de' }} är uppe.</p>
-    <div class="btns"><a class="btn primary" href="/sajt/{{ down[0].id }}">Visa sajten</a><a class="btn line" href="{{ down[0].url }}" target="_blank" rel="noopener">Öppna {{ down[0].url | host }}</a></div>
+Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 1 else 'de' }} är uppe.{% if down[0].last_code == 503 %}
+Den svarar med en underhållssida (503). Är det med flit? Slå på underhållsläge, så larmar Sajtvakt bara om sajten slutar svara helt eller visar fel.{% endif %}</p>
+    <div class="btns">
+      {% if down[0].last_code == 503 %}
+      <form method="post" action="/sajt/{{ down[0].id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="btn primary">Det är underhållsläge</button></form>
+      <a class="btn line" href="/sajt/{{ down[0].id }}">Visa sajten</a>
+      {% else %}
+      <a class="btn primary" href="/sajt/{{ down[0].id }}">Visa sajten</a>
+      {% endif %}
+      <a class="btn line" href="{{ down[0].url }}" target="_blank" rel="noopener">Öppna {{ down[0].url | host }}</a></div>
   </section>
   {% elif attention %}{% set a = attention[0] %}
   <section class="attn warn" aria-labelledby="attn-h">
@@ -73,7 +81,8 @@ Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 
       </div>
       <div class="id">
         <div><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></div>
-        {% if r.up == 1 %}<span class="state"><span class="dot up"></span>{{ r.response_ms ~ ' ms' if r.response_ms else 'uppe' }}</span>
+        {% if r.maintenance and r.up != 0 %}<span class="state maint" title="Underhållsläge – underhållssidan larmar inte"><span class="dot maint"></span>underhåll</span>
+        {% elif r.up == 1 %}<span class="state"><span class="dot up"></span>{{ r.response_ms ~ ' ms' if r.response_ms else 'uppe' }}</span>
         {% elif r.up == 0 %}<span class="state down"><span class="dot down"></span>nere</span>
         {% else %}<span class="state unknown"><span class="dot"></span>okänd</span>{% endif %}
       </div>

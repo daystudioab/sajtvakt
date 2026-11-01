@@ -594,12 +594,35 @@ def site_lock(request: Request, site_id: int, csrf_token: str = Form(""), slug: 
     return back(f"/sajt/{site_id}", "Låst – uppdateras inte automatiskt." if lock == "1" else "Upplåst – uppdateras automatiskt igen.")
 
 
+def _set_maintenance(row, on: bool) -> None:
+    if bool(row["maintenance"]) == on:
+        return
+    db.run("UPDATE sites SET maintenance = ? WHERE id = ?", 1 if on else 0, row["id"])
+    db.event(row["id"], "info", "Underhållsläge påslaget" if on else "Underhållsläge avstängt",
+             "Underhållssidan (503) räknas inte som nere. Larm går fortfarande om sajten inte svarar alls eller visar fel."
+             if on else "")
+    # Kolla direkt i bakgrunden, så att översikten visar rätt läge utan att vänta på nästa koll.
+    threading.Thread(target=jobs.monitor_site, args=(row["id"],), daemon=True).start()
+
+
 @app.post("/sajt/{site_id}/installningar")
-def site_settings(request: Request, site_id: int, csrf_token: str = Form(""), name: str = Form(""), auto_update: str = Form("0")):
+def site_settings(request: Request, site_id: int, csrf_token: str = Form(""), name: str = Form(""), auto_update: str = Form("0"),
+                  maintenance: str = Form("0")):
     csrf(request, csrf_token)
     row = _site_or_404(site_id)
     db.run("UPDATE sites SET name = ?, auto_update = ? WHERE id = ?", name.strip() or row["name"], 1 if auto_update == "1" else 0, site_id)
+    _set_maintenance(row, maintenance == "1")
     return back(f"/sajt/{site_id}", "Sparat.")
+
+
+@app.post("/sajt/{site_id}/underhall")
+def site_maintenance(request: Request, site_id: int, csrf_token: str = Form(""), on: str = Form("1"), to: str = Form("")):
+    csrf(request, csrf_token)
+    row = _site_or_404(site_id)
+    _set_maintenance(row, on == "1")
+    return back("/" if to == "oversikt" else f"/sajt/{site_id}",
+                f"Underhållsläge påslaget för {row['name']} – underhållssidan larmar inte längre." if on == "1"
+                else f"Underhållsläge avstängt för {row['name']}.")
 
 
 @app.post("/sajt/{site_id}/ny-nyckel")
