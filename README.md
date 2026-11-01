@@ -7,7 +7,7 @@ upptidskoll, skärmdumpar och flytt av sajter – för WordPress-sajter, styrt f
 |---|---|
 | `plugin/` | WordPress-tillägget som installeras på varje sajt |
 | `server/` | Panelen och schemaläggaren (Docker), körs på sajtvakt.se – installationsguide i [server/README.md](server/README.md) |
-| `dist/` | Färdigt tillägg (`sajtvakt.zip`) och `update.json` som sajterna läser för att hitta nya versioner |
+| `dist/` | Färdigt tillägg (`sajtvakt.zip` = senaste, plus en zip per version) och `update.json` som sajterna läser för att hitta nya versioner |
 | `tools/release.py` | Bygger `dist/` inför en ny version av tillägget |
 
 ## Uppdatera servern
@@ -24,7 +24,7 @@ Inställningar (`server/.env`) och all data (`server/data/`) ligger bara på ser
 
 1. Ändra i `plugin/` och höj versionen i `plugin/sajtvakt.php` **och** `plugin/includes/class-core.php`.
 2. `python3 tools/release.py "Vad som är nytt"`
-3. `git commit -am "Sajtvakt X.Y.Z" && git tag vX.Y.Z && git push && git push --tags`
+3. `git add -A && git commit -m "Sajtvakt X.Y.Z" && git push`
 
 Sajterna ser den nya versionen inom sex timmar (direkt när panelen hämtar status), och
 Sajtvakt-servern installerar den på natten – med ögonblicksbild och återställning som för

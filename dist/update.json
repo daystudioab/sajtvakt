@@ -1,6 +1,6 @@
 {
   "version": "0.3.0",
-  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/v0.3.0/dist/sajtvakt.zip",
+  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.3.0.zip",
   "sha256": "c4e2ad10e4e282dc2ae6cc1139181aa7080b5dd43cd6cf6c15bab944353b5903",
   "requires": "6.0",
   "requires_php": "7.4",
