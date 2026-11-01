@@ -506,7 +506,7 @@ def site_update(request: Request, site_id: int, csrf_token: str = Form(""), slug
     csrf(request, csrf_token)
     _site_or_404(site_id)
     only = [slug] if slug else None
-    return _start(site_id, "update", lambda j: jobs.do_update(site_id, j, only=only, include_major_core=bool(slug)),
+    return _start(site_id, "update", lambda j: jobs.do_update(site_id, j, only=only),
                   "Uppdatering startad – backup tas först om det behövs.")
 
 
@@ -524,6 +524,26 @@ def site_rollback(request: Request, site_id: int, csrf_token: str = Form(""), sn
     csrf(request, csrf_token)
     _site_or_404(site_id)
     return _start(site_id, "rollback", lambda j: jobs.do_manual_rollback(site_id, snapshot, j), "Återställer …")
+
+
+@app.post("/sajt/{site_id}/avinstallera")
+def site_remove(request: Request, site_id: int, csrf_token: str = Form(""), kind: str = Form(""), slug: str = Form("")):
+    csrf(request, csrf_token)
+    row = _site_or_404(site_id)
+    st = jobs.status_of(row) or {}
+    if kind == "plugin":
+        item = next((p for p in st.get("plugins", []) if p["file"] == slug), None)
+        if item and slug.split("/")[0] == "sajtvakt":
+            return back(f"/sajt/{site_id}", "Sajtvakt kan inte avinstallera sig självt härifrån.", bad=True)
+    elif kind == "theme":
+        item = next((t for t in st.get("themes", []) if t["slug"] == slug), None)
+        if item and (item.get("active") or item.get("parent")):
+            return back(f"/sajt/{site_id}", "Temat används av sajten och kan inte tas bort.", bad=True)
+    else:
+        item = None
+    if not item:
+        return back(f"/sajt/{site_id}", "Hittar det inte på sajten – hämta status och försök igen.", bad=True)
+    return _start(site_id, "remove", lambda j: jobs.do_remove(site_id, kind, slug, j), f"Tar bort {item['name']} …")
 
 
 @app.post("/sajt/{site_id}/las")

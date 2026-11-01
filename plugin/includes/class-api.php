@@ -96,6 +96,9 @@ final class Sajtvakt_Api {
 			case 'update':
 				$out = Sajtvakt_Updater::run( $params );
 				break;
+			case 'remove':
+				$out = Sajtvakt_Manage::remove( $params );
+				break;
 			case 'check':
 				$out = array( 'ok' => true, 'check' => Sajtvakt_Updater::check_site() );
 				break;

@@ -233,6 +233,8 @@ td.r, th.r { text-align: right; }
 .btn.small { min-height: 32px; padding: 0 11px; font-size: 13px; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--soft); }
 .btn.ghost:hover { color: var(--ink); background: var(--raise); }
+.btn.ghost.danger { color: var(--bad); }
+.btn.ghost.danger:hover { background: var(--bad-soft); color: var(--bad); }
 .btn[disabled] { opacity: .45; cursor: default; filter: none; }
 label { display: block; font-weight: 500; font-size: 14px; margin: 14px 0 6px; color: var(--ink-2); }
 .hint { color: var(--muted); font-size: 13px; margin-top: 5px; }

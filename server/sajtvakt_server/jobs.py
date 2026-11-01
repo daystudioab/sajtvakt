@@ -37,6 +37,7 @@ JOB_NAMES = {
     "refresh": "Uppdatera status",
     "rollback": "Återställ uppdatering",
     "shot": "Skärmdump",
+    "remove": "Avinstallation",
 }
 
 
@@ -333,11 +334,6 @@ def check_ssl(site_id: int) -> None:
 
 # ====================================================================== updates
 
-def _minor_core(current: str, offered: str) -> bool:
-    """Bara mindre/säkerhetsuppdateringar av WordPress körs automatiskt (6.8.1 → 6.8.2)."""
-    return current.split(".")[:2] == offered.split(".")[:2]
-
-
 def pending_updates(row, st: dict, include_major_core: bool = False) -> tuple[list[dict], list[str]]:
     skip = set(json.loads(row["skip_plugins"] or "[]"))
     items, notes = [], []
@@ -362,10 +358,11 @@ def pending_updates(row, st: dict, include_major_core: bool = False) -> tuple[li
         items.append({"type": "translations", "slug": "translations", "name": "Översättningar"})
     core = st["updates"]["core"]
     if core:
-        if include_major_core or _minor_core(st["versions"]["wordpress"], core["version"]):
-            items.append({"type": "core", "slug": "wordpress", "name": "WordPress", "to": core["version"], "from": st["versions"]["wordpress"]})
+        # WordPress uppdateras alltid, även större versioner – med kopia och återställning som tilläggen.
+        if "wordpress" in skip:
+            notes.append(f"WordPress {core['version']} väntar (låst i Sajtvakt)")
         else:
-            notes.append(f"WordPress {core['version']} finns (större version – uppdatera manuellt i panelen)")
+            items.append({"type": "core", "slug": "wordpress", "name": "WordPress", "to": core["version"], "from": st["versions"]["wordpress"]})
     return items, notes
 
 
@@ -491,17 +488,29 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
             else:
                 rolled_back.extend(files_items)
 
-    if core_items and not rolled_back:
+    if core_items:
         progress(job_id, "Uppdaterar WordPress …")
-        res = s.update([{"type": "core", "slug": "wordpress"}], refresh=False)
-        after = check_http(row["url"])
-        for r in res.get("results", []):
-            (updated if r["ok"] and r["status"] == "updated" else failed if not r["ok"] else []).append(r)
-        if not healthy(after, baseline):
-            db.event(site_id, "error", "Sajten fungerar inte efter WordPress-uppdateringen",
-                     "Kärnan kan inte rullas tillbaka som tillägg – återställ från backupen före uppdateringen.")
-            mailer.send(f"AKUT – {row['name']} trasig efter WordPress-uppdatering",
-                        f"{row['url']} fungerar inte efter uppdateringen av WordPress.\n\nÅterställ från backupen före uppdateringen i panelen: {config.PUBLIC_URL}/sajt/{site_id}")
+        res, ok = run_batch(core_items)
+        if ok:
+            for r in res.get("results", []):
+                (updated if r["ok"] and r["status"] == "updated" else failed if not r["ok"] else []).append(r)
+        else:
+            progress(job_id, "WordPress-uppdateringen fick sajten att gå sönder – återställer …")
+            try:
+                how = undo(res)
+            except SajtvaktError:
+                how = None
+            if how is None or not healthy(check_http(row["url"]), baseline):
+                db.event(site_id, "error", "Sajten fungerar inte efter WordPress-uppdateringen",
+                         "Den automatiska återställningen hjälpte inte. Återställ från backupen före uppdateringen.")
+                mailer.send(f"AKUT – {row['name']} trasig efter WordPress-uppdatering",
+                            f"{row['url']} fungerar inte efter uppdateringen av WordPress, och den automatiska återställningen hjälpte inte.\n\n"
+                            f"Återställ från backupen före uppdateringen i panelen: {config.PUBLIC_URL}/sajt/{site_id}")
+                err = SajtvaktError("still_broken", "Sajten fungerar inte efter WordPress-uppdateringen.")
+                err.emailed = True
+                raise err
+            db.event(site_id, "warning", "WordPress-uppdateringen fick sajten att gå sönder – återställd", f"Återställd via {how}.")
+            rolled_back.extend(core_items)
 
     refresh_status(site_id, job_id, refresh=False)
 
@@ -527,7 +536,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
         db.event(site_id, "warning", "Återställd: " + names,
                  "Uppdateringen kraschade sajten och togs tillbaka. Den hoppas över tills du låser upp den eller uppdaterar manuellt.")
         skip = set(json.loads(db.site(site_id)["skip_plugins"] or "[]"))
-        skip.update(i["slug"] for i in rolled_back if i["type"] in ("plugin", "theme"))
+        skip.update(i["slug"] for i in rolled_back if i["type"] in ("plugin", "theme", "core"))
         db.run("UPDATE sites SET skip_plugins = ? WHERE id = ?", json.dumps(sorted(skip)), site_id)
         mailer.send(f"Uppdatering återställd – {row['name']}",
                     f"Uppdateringen av {names} fick {row['url']} att gå sönder. Sajtvakt återställde den automatiskt och sajten fungerar igen.\n\n"
@@ -544,6 +553,32 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
         "notes": notes,
         "shot": bool(after_shot),
     }
+
+
+def do_remove(site_id: int, kind: str, slug: str, job_id: int | None = None) -> dict:
+    """Avinstallera ett tillägg eller tema. Pluginet sparar en kopia först, så det kan läggas tillbaka."""
+    row = db.site(site_id)
+    s = client(row)
+    progress(job_id, "Sparar en kopia och tar bort …")
+    baseline = check_http(row["url"])
+    res = s.request("remove", {"type": kind, "slug": slug, "ref": secrets.token_hex(16)}, timeout=600)
+    name = res.get("name") or slug
+    refresh_status(site_id, job_id, refresh=False)
+    after = check_http(row["url"])
+    what = "tillägget" if kind == "plugin" else "temat"
+    if baseline["ok"] and not healthy(after, baseline):
+        db.event(site_id, "error", f"Sajten fungerar inte efter att {name} togs bort",
+                 f"Lägg tillbaka {what} under \"Före uppdateringar\" på sajtens sida (det blir då inaktivt och behöver aktiveras), "
+                 "eller återställ från backupen.")
+        mailer.send(f"Trasig efter avinstallation – {row['name']}",
+                    f"{row['url']} svarar inte som den ska efter att {name} togs bort.\n\n{config.PUBLIC_URL}/sajt/{site_id}")
+    else:
+        db.event(site_id, "ok", f"Avinstallerade {name}", f"En kopia av {what} finns under \"Före uppdateringar\" om du ångrar dig.")
+    skip = set(json.loads(db.site(site_id)["skip_plugins"] or "[]"))
+    if slug in skip:
+        skip.discard(slug)
+        db.run("UPDATE sites SET skip_plugins = ? WHERE id = ?", json.dumps(sorted(skip)), site_id)
+    return {"message": f"{name} är borttaget"}
 
 
 def do_shot(site_id: int, job_id: int | None = None) -> dict:

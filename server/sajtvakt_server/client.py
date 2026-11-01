@@ -15,7 +15,7 @@ import secrets
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Callable
+from typing import Callable
 
 
 class SajtvaktError(Exception):

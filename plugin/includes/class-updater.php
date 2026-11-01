@@ -51,10 +51,10 @@ final class Sajtvakt_Updater {
 			Sajtvakt_Core::send_error( 'nothing', 'Inget giltigt att uppdatera angavs.', 400 );
 		}
 
-		// 1. Snapshot first. No snapshot, no update.
+		// 1. Snapshot first. No snapshot, no update. (Vid kärnuppdatering sparas även WordPress egna filer.)
 		$snapshot = null;
-		if ( $plugins || $themes ) {
-			$snap = Sajtvakt_Snapshot::create( $plugins, $themes, isset( $params['ref'] ) ? (string) $params['ref'] : '' );
+		if ( $plugins || $themes || $core ) {
+			$snap = Sajtvakt_Snapshot::create( $plugins, $themes, isset( $params['ref'] ) ? (string) $params['ref'] : '', $core );
 			if ( is_wp_error( $snap ) ) {
 				Sajtvakt_Core::send_error( $snap->get_error_code(), $snap->get_error_message(), 500 );
 			}
@@ -111,10 +111,6 @@ final class Sajtvakt_Updater {
 			}
 		}
 
-		if ( $snapshot ) {
-			Sajtvakt_Snapshot::mark_updated( $snapshot, $after );
-		}
-
 		// 4. Translations.
 		if ( $languages ) {
 			$skin     = new WP_Ajax_Upgrader_Skin();
@@ -132,7 +128,7 @@ final class Sajtvakt_Updater {
 			);
 		}
 
-		// 5. Core (no file snapshot – a database backup before is the safety net).
+		// 5. Core (WordPress filer finns i ögonblicksbilden; databasen i backupen före).
 		if ( $core ) {
 			global $wp_version;
 			$before = $wp_version;
@@ -150,6 +146,9 @@ final class Sajtvakt_Updater {
 				$upgrader = new Core_Upgrader( $skin );
 				$res      = $upgrader->upgrade( $offer, array( 'attempt_rollback' => true ) );
 				$ok       = ! is_wp_error( $res ) && false !== $res;
+				if ( $ok ) {
+					$after['core'] = (string) $res;
+				}
 				$results[] = array(
 					'type'    => 'core',
 					'slug'    => 'wordpress',
@@ -161,6 +160,10 @@ final class Sajtvakt_Updater {
 					'message' => is_wp_error( $res ) ? $res->get_error_message() : self::errors_text( $skin ),
 				);
 			}
+		}
+
+		if ( $snapshot ) {
+			Sajtvakt_Snapshot::mark_updated( $snapshot, $after );
 		}
 
 		return array(

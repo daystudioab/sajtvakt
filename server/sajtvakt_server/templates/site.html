@@ -47,7 +47,7 @@
           <td><strong>{{ i.name }}</strong> <span class="muted small">{{ {'plugin':'tillägg','theme':'tema','core':'kärna','translations':''}[i.type] }}</span></td>
           <td class="muted nowrap">{% if i.to %}{{ i.from }} → <strong style="color:var(--ink)">{{ i.to }}</strong>{% endif %}</td>
           <td class="r nowrap">
-            {% if i.type in ('plugin','theme') %}
+            {% if i.type in ('plugin','theme','core') %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/las"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ i.slug }}"><input type="hidden" name="lock" value="1"><button class="btn ghost small" title="Uppdatera inte automatiskt">Lås</button></form>
             {% endif %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/uppdatera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ i.slug }}"><button class="btn small" {{ 'disabled' if busy }}>Uppdatera</button></form>
@@ -117,15 +117,61 @@
     {% endif %}
   </div>
 
+  <!-- Tillägg och teman -->
+  {% if st %}
+  <div class="card section">
+    <div class="card-head"><h2>Tillägg och teman</h2><span class="muted small">{{ st.plugins | length }} tillägg · {{ st.themes | length }} teman</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tillägg</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
+      <tbody>
+      {% for p in st.plugins | sort(attribute='name') %}
+        <tr>
+          <td><strong>{{ p.name }}</strong>{% if p.file in skip %} <span class="badge warn">låst</span>{% endif %}</td>
+          <td class="muted nowrap hide-sm mono">{{ p.version }}{% if p.update and p.update.version %} → {{ p.update.version }}{% endif %}</td>
+          <td class="nowrap">{% if p.active %}<span class="badge ok">aktivt</span>{% else %}<span class="badge">inaktivt</span>{% endif %}</td>
+          <td class="r nowrap">
+            {% if p.file.split('/')[0] != 'sajtvakt' %}
+            <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera"
+                  data-confirm="Avinstallera {{ p.name }}?{{ ' Det är aktivt och används kanske av sajten.' if p.active }} En kopia av filerna sparas och kan läggas tillbaka, men tilläggets egna inställningar kan försvinna.">
+              <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="plugin"><input type="hidden" name="slug" value="{{ p.file }}">
+              <button class="btn ghost small danger" {{ 'disabled' if busy }}>Avinstallera</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <thead><tr><th>Tema</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
+      <tbody>
+      {% for t in st.themes | sort(attribute='name') %}
+        <tr>
+          <td><strong>{{ t.name }}</strong></td>
+          <td class="muted nowrap hide-sm mono">{{ t.version }}{% if t.update and t.update.version %} → {{ t.update.version }}{% endif %}</td>
+          <td class="nowrap">{% if t.active %}<span class="badge ok">används</span>{% elif t.parent %}<span class="badge ok">förälder</span>{% else %}<span class="badge">används inte</span>{% endif %}</td>
+          <td class="r nowrap">
+            {% if not t.active and not t.parent %}
+            <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera" data-confirm="Ta bort temat {{ t.name }}? En kopia sparas och kan läggas tillbaka.">
+              <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="theme"><input type="hidden" name="slug" value="{{ t.slug }}">
+              <button class="btn ghost small danger" {{ 'disabled' if busy }}>Ta bort</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  {% endif %}
+
   <!-- Ögonblicksbilder -->
   {% if st and st._snapshots %}
   <div class="card section">
-    <div class="card-head"><h2>Före uppdateringar</h2><span class="muted small">kopior som kan läggas tillbaka direkt</span></div>
+    <div class="card-head"><h2>Sparade kopior</h2><span class="muted small">före uppdateringar och avinstallationer – kan läggas tillbaka direkt</span></div>
     <div class="table-wrap"><table><tbody>
       {% for snap in st._snapshots[:6] %}
       <tr>
         <td class="nowrap">{{ snap.created | ts }}</td>
-        <td>{% for i in snap['items'] %}{{ i.name }} <span class="muted">{{ i.before }}{% if i.after and i.after != i.before %} → {{ i.after }}{% endif %}</span>{{ ', ' if not loop.last }}{% endfor %}
+        <td>{% for i in snap['items'] %}{{ i.name }} <span class="muted">{{ i.before }}{% if i.removed %}</span> <span class="badge">avinstallerat</span>{% else %}{% if i.after and i.after != i.before %} → {{ i.after }}{% endif %}</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
           {% if snap.rolled_back %}<span class="badge">återställd</span>{% endif %}</td>
         <td class="r">
           {% if snap.status in ('ready','updated') %}

@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) && ! defined( 'SAJTVAKT_RESCUE' ) ) {
 
 final class Sajtvakt_Core {
 
-	const VERSION   = '0.3.0';
+	const VERSION   = '0.3.1';
 	const MAX_SKEW  = 300;  // Seconds a signed request may differ from server time.
 	const NONCE_TTL = 900;  // Seconds a used nonce is remembered.
 	const GUARD     = "<?php exit; ?>\n";
@@ -317,14 +317,21 @@ final class Sajtvakt_Core {
 			if ( ! $m ) {
 				continue;
 			}
-			$items = array();
+			$items    = array();
+			$has_core = false;
 			foreach ( (array) $m['items'] as $item ) {
-				$items[] = array(
+				// WordPress-filerna visas som en rad.
+				if ( 'core-file' === $item['type'] || ( 'core' === $item['type'] && $has_core ) ) {
+					continue;
+				}
+				$has_core = $has_core || 'core' === $item['type'];
+				$items[]  = array(
 					'type'   => $item['type'],
 					'slug'   => $item['slug'],
 					'name'   => isset( $item['name'] ) ? $item['name'] : $item['slug'],
 					'before' => isset( $item['version_before'] ) ? $item['version_before'] : null,
 					'after'  => isset( $item['version_after'] ) ? $item['version_after'] : null,
+					'removed' => ! empty( $item['removed'] ),
 				);
 			}
 			$out[] = array(
@@ -350,6 +357,16 @@ final class Sajtvakt_Core {
 			return false;
 		}
 		$target  = rtrim( str_replace( '\\', '/', $target ), '/' );
+		// WordPress egna filer (vid återställning av en kärnuppdatering) – exakt dessa, inget annat i roten.
+		if ( ! empty( $paths['abspath'] ) ) {
+			$abs = rtrim( str_replace( '\\', '/', $paths['abspath'] ), '/' );
+			if ( $target === $abs . '/wp-admin' || $target === $abs . '/wp-includes' ) {
+				return true;
+			}
+			if ( dirname( $target ) === $abs && self::is_core_root_file( basename( $target ) ) ) {
+				return true;
+			}
+		}
 		$allowed = array_merge( array( $paths['plugin_dir'] ), (array) $paths['theme_roots'] );
 		foreach ( $allowed as $root ) {
 			$root = rtrim( str_replace( '\\', '/', $root ), '/' );
@@ -358,6 +375,14 @@ final class Sajtvakt_Core {
 			}
 		}
 		return false;
+	}
+
+	/** Filer i WordPress-roten som hör till WordPress själv. wp-config.php räknas aldrig hit. */
+	public static function is_core_root_file( $file ) {
+		if ( 'wp-config.php' === $file ) {
+			return false;
+		}
+		return (bool) preg_match( '/^(index\.php|xmlrpc\.php|wp-[a-z0-9-]+\.php|license\.txt|readme\.html)$/', (string) $file );
 	}
 
 	/** Find the snapshot that belongs to a server-generated reference. */
@@ -419,7 +444,7 @@ final class Sajtvakt_Core {
 		$all_ok  = true;
 		foreach ( (array) $manifest['items'] as $item ) {
 			$target = rtrim( $item['target'], '/' );
-			$single = ( 'plugin' === $item['type'] && false === strpos( $item['slug'], '/' ) );
+			$single = ! empty( $item['single'] ) || ( 'plugin' === $item['type'] && false === strpos( $item['slug'], '/' ) );
 			$res    = array( 'type' => $item['type'], 'slug' => $item['slug'], 'ok' => false );
 
 			if ( ! self::target_allowed( $target ) ) {

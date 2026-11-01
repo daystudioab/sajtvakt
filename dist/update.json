@@ -1,12 +1,12 @@
 {
-  "version": "0.3.0",
-  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.3.0.zip",
-  "sha256": "c4e2ad10e4e282dc2ae6cc1139181aa7080b5dd43cd6cf6c15bab944353b5903",
+  "version": "0.3.1",
+  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.3.1.zip",
+  "sha256": "19f9d59ffe87dfe51a9e7a07082ddadbe0c9a73903589d9179f73a3ecc714f37",
   "requires": "6.0",
   "requires_php": "7.4",
   "date": "2026-11-01",
   "changes": [
-    "Uppdaterar sig själv från GitHub",
-    "Fungerar med Sajtvakt-servern 0.3 (skärmdumpar, ny panel)"
+    "WordPress själv uppdateras med kopia och automatisk återställning",
+    "Avinstallera tillägg och teman från panelen (kopia sparas först)"
   ]
 }

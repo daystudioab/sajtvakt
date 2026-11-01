@@ -65,7 +65,8 @@ Första backupen tas direkt. Från natten därpå körs backup och uppdateringar
 - **Skärmdumpar.** Efter nattens körning fotograferar servern varje startsida (med en inbyggd webbläsare). Före och efter en uppdatering jämförs bilderna; har mer än en fjärdedel av sidan ändrats fast den svarar normalt, visas en varning i översikten. Ingenting återställs då automatiskt – det kan vara ett bildspel som bytt bild.
 - **Kvittera varningar.** Varningar visas i rutan överst i översikten tills du kvitterar dem.
 - **Låsta tillägg.** Ett tillägg som har kraschat en sajt låses så att Sajtvakt inte provar igen varje natt. Lås upp det på sajtens sida när en rättad version finns.
-- **Större WordPress-versioner** (till exempel 6.8 → 6.9) installeras inte automatiskt. Du kör dem med en knapp i panelen. Mindre säkerhetsuppdateringar sker automatiskt.
+- **WordPress själv** uppdateras automatiskt varje natt, även större versioner. Före uppdateringen sparas en kopia av WordPress filer (och backupen tas), så går sajten sönder läggs den gamla versionen tillbaka direkt och uppdateringen låses tills du låser upp den.
+- **Avinstallera** tillägg och teman från sajtens sida i panelen. En kopia av filerna sparas först och kan läggas tillbaka under "Sparade kopior".
 - **Premiumtillägg** som Elementor Pro uppdateras bara om licensen är aktiv på sajten. Annars visar panelen det.
 - **Panelen visar en varning** om en sajts nödingång inte går att nå, eller om webbservern (nginx) visar Sajtvakts datamapp utifrån. Be då webbhotellet spärra `wp-content/sajtvakt-data`.
 - **Ta bort `SAJTVAKT_ADMIN_PASSWORD` ur `.env`** när du har loggat in och bytt lösenord. Den används bara första gången.
