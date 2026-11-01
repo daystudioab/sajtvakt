@@ -373,7 +373,9 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         now = int(time.time())
         stale = row["last_backup"] and now - row["last_backup"] > 36 * 3600
         recent_trouble = any(x["kind"] in ("miss", "roll") for x in nights[-2:])
-        if row["up"] == 0:
+        if row["maintenance"] and (row["up"] != 0 or row["last_code"] == 503):
+            out["tone"] = "maint"
+        elif row["up"] == 0:
             out["tone"] = "bad"
         elif row["maintenance"]:
             out["tone"] = "maint"
@@ -602,14 +604,17 @@ def _set_maintenance(row, on: bool) -> None:
     if bool(row["maintenance"]) == on:
         return
     db.run("UPDATE sites SET maintenance = ? WHERE id = ?", 1 if on else 0, row["id"])
-    if on and row["up"] == 0 and row["last_code"] == 503:
+    if on and row["up"] == 0 and row["last_code"] in (503, None):
         # Nere för att den visade underhållssidan – räknas som uppe direkt, så att varningen försvinner.
         db.run("UPDATE sites SET up = 1, fails = 0, down_since = NULL WHERE id = ?", row["id"])
     db.event(row["id"], "info", "Underhållsläge påslaget" if on else "Underhållsläge avstängt",
              "Underhållssidan (503) räknas inte som nere. Larm går fortfarande om sajten inte svarar alls eller visar fel."
              if on else "")
-    # Kolla direkt i bakgrunden, så att översikten visar rätt läge utan att vänta på nästa koll.
-    threading.Thread(target=jobs.monitor_site, args=(row["id"],), daemon=True).start()
+    # Kolla direkt, så att översikten visar rätt läge utan att vänta på nästa koll.
+    try:
+        jobs.monitor_site(row["id"])
+    except Exception as e:
+        log.warning("Koll efter underhållsläge: %s", e)
 
 
 @app.post("/sajt/{site_id}/installningar")

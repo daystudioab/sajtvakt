@@ -87,7 +87,7 @@ Den svarar med en underhållssida (503). Är det med flit? Slå på underhållsl
       </div>
       <div class="id">
         <div><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></div>
-        {% if r.maintenance and r.up != 0 %}<span class="state maint" title="Underhållsläge – underhållssidan larmar inte"><span class="dot maint"></span>underhåll</span>
+        {% if r.maintenance and (r.up != 0 or r.last_code == 503) %}<span class="state maint" title="Underhållssidan larmar inte"><span class="dot maint"></span>underhållsläge</span>
         {% elif r.up == 1 %}<span class="state"><span class="dot up"></span>{{ r.response_ms ~ ' ms' if r.response_ms else 'uppe' }}</span>
         {% elif r.up == 0 %}<span class="state down"><span class="dot down"></span>nere</span>
         {% else %}<span class="state unknown"><span class="dot"></span>okänd</span>{% endif %}

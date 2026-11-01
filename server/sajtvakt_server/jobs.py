@@ -279,7 +279,9 @@ def check_http(url: str, maintenance: bool = False) -> dict:
     # 503 som ser ut som en underhållssida (Elementor, WP Maintenance Mode, SeedProd m.fl.).
     maint_like = code == 503 and (retry_after or any(w in low for w in MAINT_WORDS))
     ok = code < 500 and not wp_error
-    if maintenance and code == 503 and not wp_error:
+    if maintenance and code == 503:
+        # Underhållsläge: 503 är underhållssidan – även när den visas via WordPress egen
+        # felsida (wp_die), som WordPress inbyggda underhållsläge och vissa tillägg gör.
         ok = True
     return {"ok": ok, "code": code, "ms": ms, "bytes": len(body), "maintenance": maint_like,
             "error": "WordPress visar en felsida" if wp_error else ("underhållssida (503)" if maint_like else None)}
