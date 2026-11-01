@@ -312,3 +312,7 @@ details.use summary::-webkit-details-marker { display: none; }
 
 .empty { text-align: center; padding: 48px 20px; }
 .empty p { color: var(--muted); max-width: 440px; margin: 8px auto 18px; }
+
+/* ---- ikoner före rubriker ---- */
+h2:has(> .ic) { display: flex; align-items: center; gap: 9px; }
+h2 .ic { width: 17px; height: 17px; flex: none; color: var(--accent); opacity: .85; }

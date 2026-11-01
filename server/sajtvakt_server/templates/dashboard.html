@@ -59,7 +59,7 @@ Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 
 {% else %}
 <section aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
   <div class="list-head">
-    <h2 id="sajter-h">Sajter <span class="mono muted" style="font-weight:400">{{ sites | length }}</span></h2>
+    <h2 id="sajter-h">{{ icon("sites") }}Sajter <span class="mono muted" style="font-weight:400">{{ sites | length }}</span></h2>
     <div class="legend" aria-hidden="true"><span><i style="background:var(--ok-bar)"></i>Backup</span><span><i style="background:#e0a33a"></i>Uppdatering återställd</span><span><i style="background:#e05547"></i>Ingen backup</span></div>
   </div>
   <div class="sites">
@@ -98,7 +98,7 @@ Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 
 
 {% if log %}
 <section class="card section" aria-labelledby="logg-h" style="margin-top:26px">
-  <div class="card-head"><h2 id="logg-h">Logg</h2><a class="small" href="/handelser">Alla händelser</a></div>
+  <div class="card-head"><h2 id="logg-h">{{ icon("log") }}Logg</h2><a class="small" href="/handelser">Alla händelser</a></div>
   <div class="card-body">
     <ul class="log">
     {% for e in log %}

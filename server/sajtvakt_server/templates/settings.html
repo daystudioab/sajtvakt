@@ -3,7 +3,8 @@
 {% block content %}
 <div class="head"><div><h1>Inställningar</h1><div class="sub muted small">Tidszon {{ tz }} · lagrat totalt {{ usage | bytes }}</div></div></div>
 <div class="grid two">
-  <div class="card"><div class="card-body" style="padding-top:6px">
+  <div class="card"><div class="card-body" style="padding-top:16px">
+    <h2>{{ icon("clock") }}Nattlig körning och larm</h2>
     <form method="post" action="/installningar">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">
       <label for="h">Nattlig backup startar kl</label>
@@ -24,7 +25,7 @@
 
   <div>
     <div class="card"><div class="card-body" style="padding-top:16px">
-      <h2>E-post för larm</h2>
+      <h2>{{ icon("mail") }}E-post för larm</h2>
       <p class="muted small" style="margin:6px 0 0">Kontot larmen skickas från. För Loopia: server <code>mailcluster.loopia.se</code>, port 587, STARTTLS, och hela e-postadressen som användarnamn.</p>
       <form method="post" action="/installningar/epost">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
@@ -52,7 +53,7 @@
     </div></div>
 
     <div class="card section"><div class="card-body" style="padding-top:16px">
-      <h2>Byt lösenord</h2>
+      <h2>{{ icon("lock") }}Byt lösenord</h2>
       <form method="post" action="/installningar/losenord">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
         <label>Nuvarande</label><input type="password" name="current" autocomplete="current-password" required>

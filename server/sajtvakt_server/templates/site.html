@@ -36,7 +36,7 @@
 
   <!-- Uppdateringar -->
   <div class="card">
-    <div class="card-head"><h2>Uppdateringar</h2>
+    <div class="card-head"><h2>{{ icon("updates") }}Uppdateringar</h2>
       {% if site.auto_update %}<span class="badge ok">automatiskt i natt</span>{% else %}<span class="badge">manuellt</span>{% endif %}
     </div>
     {% if pending %}
@@ -75,7 +75,7 @@
 
   <!-- Backuper -->
   <div class="card section">
-    <div class="card-head"><h2>Backuper</h2><span class="muted small">{{ backups | selectattr('status','equalto','done') | list | length }} st</span></div>
+    <div class="card-head"><h2>{{ icon("backup") }}Backuper</h2><span class="muted small">{{ backups | selectattr('status','equalto','done') | list | length }} st</span></div>
     {% if backups %}
     <div><table>
       <thead><tr><th>Datum</th><th class="hide-sm">Typ</th><th class="r">Storlek</th><th></th></tr></thead>
@@ -120,7 +120,7 @@
   <!-- Tillägg och teman -->
   {% if st %}
   <div class="card section">
-    <div class="card-head"><h2>Tillägg och teman</h2><span class="muted small">{{ st.plugins | length }} tillägg · {{ st.themes | length }} teman</span></div>
+    <div class="card-head"><h2>{{ icon("plugins") }}Tillägg och teman</h2><span class="muted small">{{ st.plugins | length }} tillägg · {{ st.themes | length }} teman</span></div>
     {% set can_remove = version_at_least(st.versions.sajtvakt or '0', '0.3.1') %}
     {% if not can_remove %}<div class="card-body" style="padding-bottom:6px"><div class="notice warn" style="margin:0">För att avinstallera härifrån behöver sajten Sajtvakt-tillägget 0.3.1 (nu {{ st.versions.sajtvakt }}). Klicka <strong>Hämta status</strong> och sedan <strong>Uppdatera</strong> på raden Sajtvakt ovan – eller vänta till i natt, då sker det automatiskt.</div></div>{% endif %}
     <div class="table-wrap"><table>
@@ -168,7 +168,7 @@
   <!-- Ögonblicksbilder -->
   {% if st and st._snapshots %}
   <div class="card section">
-    <div class="card-head"><h2>Sparade kopior</h2><span class="muted small">före uppdateringar och avinstallationer – kan läggas tillbaka direkt</span></div>
+    <div class="card-head"><h2>{{ icon("copies") }}Sparade kopior</h2><span class="muted small">före uppdateringar och avinstallationer – kan läggas tillbaka direkt</span></div>
     <div class="table-wrap"><table><tbody>
       {% for snap in st._snapshots[:6] %}
       <tr>
@@ -193,7 +193,7 @@
 <div>
   <!-- Startsidan -->
   <div class="card">
-    <div class="card-head"><h2>Startsidan</h2>
+    <div class="card-head"><h2>{{ icon("screen") }}Startsidan</h2>
       <form method="post" action="/sajt/{{ site.id }}/skarmdump"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn small" {{ 'disabled' if busy or not shots_on }}>Ny skärmdump</button></form>
     </div>
     <div class="card-body">
@@ -212,7 +212,7 @@
 
   <!-- Status -->
   <div class="card section">
-    <div class="card-head"><h2>Status</h2></div>
+    <div class="card-head"><h2>{{ icon("status") }}Status</h2></div>
     <table><tbody>
       <tr><td class="muted">Tillgänglighet</td><td class="r">
         {% if site.up == 1 %}<span class="badge ok">uppe</span>{% elif site.up == 0 %}<span class="badge bad">nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
@@ -226,7 +226,7 @@
 
   <!-- Händelser -->
   <div class="card section">
-    <div class="card-head"><h2>Händelser</h2></div>
+    <div class="card-head"><h2>{{ icon("events") }}Händelser</h2></div>
     <div class="card-body">
       {% if events %}
       <ul class="events">
@@ -244,7 +244,7 @@
 
   <!-- Inställningar -->
   <div class="card section">
-    <div class="card-head"><h2>Inställningar</h2></div>
+    <div class="card-head"><h2>{{ icon("settings") }}Inställningar</h2></div>
     <div class="card-body">
       <form method="post" action="/sajt/{{ site.id }}/installningar">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">

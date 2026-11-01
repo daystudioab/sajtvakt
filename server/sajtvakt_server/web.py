@@ -104,6 +104,31 @@ templates.env.globals["LOGO"] = Markup(
     'stroke="currentColor" stroke-width="2"/><path d="M6 15h4l2-5 4 9 2-4h4" stroke="currentColor" stroke-width="2" '
     'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
+# Ikoner före rubrikerna: tunna linjer, 16 px, färgen ärvs (currentColor).
+_ICON_PATHS = {
+    "updates": '<path d="M2.5 8a5.5 5.5 0 0 1 9.6-3.7M13.5 8a5.5 5.5 0 0 1-9.6 3.7"/><path d="M12.5 1.8v2.8H9.7M3.5 14.2v-2.8h2.8"/>',
+    "backup": '<ellipse cx="8" cy="3.8" rx="5.5" ry="2"/><path d="M2.5 3.8v8.4c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V3.8M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/>',
+    "plugins": '<path d="M6 1.8v3M10 1.8v3M3.8 4.8h8.4v2.7a4.2 4.2 0 0 1-8.4 0Z"/><path d="M8 11.7v2.5"/>',
+    "copies": '<path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8"/><path d="M2.4 1.9v2.6H5M8 5v3.2l2.2 1.4"/>',
+    "screen": '<rect x="1.8" y="2.5" width="12.4" height="8.6" rx="1.3"/><path d="M5.5 14h5M8 11.1V14"/>',
+    "status": '<path d="M1.5 8.5h3l1.6-4 3.2 7.5 1.7-3.5h3.5"/>',
+    "events": '<path d="M5.5 4h8.5M5.5 8h8.5M5.5 12h8.5"/><circle cx="2.4" cy="4" r=".6"/><circle cx="2.4" cy="8" r=".6"/><circle cx="2.4" cy="12" r=".6"/>',
+    "settings": '<circle cx="8" cy="8" r="2.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/>',
+    "sites": '<rect x="1.8" y="1.8" width="5.2" height="5.2" rx="1"/><rect x="9" y="1.8" width="5.2" height="5.2" rx="1"/><rect x="1.8" y="9" width="5.2" height="5.2" rx="1"/><rect x="9" y="9" width="5.2" height="5.2" rx="1"/>',
+    "log": '<rect x="1.8" y="2.3" width="12.4" height="11.4" rx="1.3"/><path d="m4.6 6 2 2-2 2M8.2 10.2h3.2"/>',
+    "mail": '<rect x="1.8" y="3.3" width="12.4" height="9.4" rx="1.3"/><path d="m2.3 4 5.7 4.6L13.7 4"/>',
+    "lock": '<rect x="3" y="7" width="10" height="7" rx="1.3"/><path d="M5.3 7V5a2.7 2.7 0 0 1 5.4 0v2"/>',
+    "clock": '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.5"/>',
+    "info": '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.9v.1"/>',
+}
+
+
+def _icon(name: str) -> Markup:
+    return Markup('<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" '
+                  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + _ICON_PATHS[name] + "</svg>")
+
+
+templates.env.globals["icon"] = _icon
 templates.env.globals["LEVELS"] = {"error": "FEL", "warning": "VARN", "ok": "OK", "info": "INFO"}
 templates.env.globals["VERSION"] = __version__
 templates.env.globals["KIND_NAMES"] = {
