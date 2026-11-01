@@ -121,6 +121,8 @@
   {% if st %}
   <div class="card section">
     <div class="card-head"><h2>Tillägg och teman</h2><span class="muted small">{{ st.plugins | length }} tillägg · {{ st.themes | length }} teman</span></div>
+    {% set can_remove = version_at_least(st.versions.sajtvakt or '0', '0.3.1') %}
+    {% if not can_remove %}<div class="card-body" style="padding-bottom:6px"><div class="notice warn" style="margin:0">För att avinstallera härifrån behöver sajten Sajtvakt-tillägget 0.3.1 (nu {{ st.versions.sajtvakt }}). Klicka <strong>Hämta status</strong> och sedan <strong>Uppdatera</strong> på raden Sajtvakt ovan – eller vänta till i natt, då sker det automatiskt.</div></div>{% endif %}
     <div class="table-wrap"><table>
       <thead><tr><th>Tillägg</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
       <tbody>
@@ -130,7 +132,7 @@
           <td class="muted nowrap hide-sm mono">{{ p.version }}{% if p.update and p.update.version %} → {{ p.update.version }}{% endif %}</td>
           <td class="nowrap">{% if p.active %}<span class="badge ok">aktivt</span>{% else %}<span class="badge">inaktivt</span>{% endif %}</td>
           <td class="r nowrap">
-            {% if p.file.split('/')[0] != 'sajtvakt' %}
+            {% if can_remove and p.file.split('/')[0] != 'sajtvakt' %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera"
                   data-confirm="Avinstallera {{ p.name }}?{{ ' Det är aktivt och används kanske av sajten.' if p.active }} En kopia av filerna sparas och kan läggas tillbaka, men tilläggets egna inställningar kan försvinna.">
               <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="plugin"><input type="hidden" name="slug" value="{{ p.file }}">
@@ -149,7 +151,7 @@
           <td class="muted nowrap hide-sm mono">{{ t.version }}{% if t.update and t.update.version %} → {{ t.update.version }}{% endif %}</td>
           <td class="nowrap">{% if t.active %}<span class="badge ok">används</span>{% elif t.parent %}<span class="badge ok">förälder</span>{% else %}<span class="badge">används inte</span>{% endif %}</td>
           <td class="r nowrap">
-            {% if not t.active and not t.parent %}
+            {% if can_remove and not t.active and not t.parent %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera" data-confirm="Ta bort temat {{ t.name }}? En kopia sparas och kan läggas tillbaka.">
               <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="kind" value="theme"><input type="hidden" name="slug" value="{{ t.slug }}">
               <button class="btn ghost small danger" {{ 'disabled' if busy }}>Ta bort</button>

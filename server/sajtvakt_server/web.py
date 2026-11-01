@@ -526,11 +526,24 @@ def site_rollback(request: Request, site_id: int, csrf_token: str = Form(""), sn
     return _start(site_id, "rollback", lambda j: jobs.do_manual_rollback(site_id, snapshot, j), "Återställer …")
 
 
+def _version_at_least(have: str, need: str) -> bool:
+    def parts(v):
+        return [int(x) for x in re.findall(r"\d+", v)[:3]] + [0, 0, 0]
+    return parts(have)[:3] >= parts(need)[:3]
+
+
+templates.env.globals["version_at_least"] = _version_at_least
+
+
 @app.post("/sajt/{site_id}/avinstallera")
 def site_remove(request: Request, site_id: int, csrf_token: str = Form(""), kind: str = Form(""), slug: str = Form("")):
     csrf(request, csrf_token)
     row = _site_or_404(site_id)
     st = jobs.status_of(row) or {}
+    have = (st.get("versions") or {}).get("sajtvakt") or "0"
+    if not _version_at_least(have, "0.3.1"):
+        return back(f"/sajt/{site_id}", f"Sajten har Sajtvakt-tillägget {have}, och avinstallation kräver 0.3.1. "
+                    "Klicka Hämta status och sedan Uppdatera på raden Sajtvakt under Uppdateringar.", bad=True)
     if kind == "plugin":
         item = next((p for p in st.get("plugins", []) if p["file"] == slug), None)
         if item and slug.split("/")[0] == "sajtvakt":
