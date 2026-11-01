@@ -1,0 +1,17 @@
+# Caddy hämtar och förnyar HTTPS-certifikatet automatiskt.
+{$SAJTVAKT_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+	}
+	reverse_proxy sajtvakt:8000 {
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+www.{$SAJTVAKT_DOMAIN} {
+	redir https://{$SAJTVAKT_DOMAIN}{uri} permanent
+}

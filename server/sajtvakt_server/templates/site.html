@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} · Sajtvakt{% endblock %}
+{% block content %}
+{% set busy = running | length > 0 %}
+<div class="head">
+  <div>
+    <h1><span class="dot {{ 'up' if site.up == 1 else 'down' if site.up == 0 }}"></span>{{ site.name }}</h1>
+    <div class="sub muted small">
+      <a href="{{ site.url }}" target="_blank" rel="noopener">{{ site.url | replace('https://','') | replace('http://','') | trim('/') }}</a>
+      {% if st %} · WordPress {{ st.versions.wordpress }} · PHP {{ st.versions.php }} · Sajtvakt {{ st.versions.sajtvakt }}{% endif %}
+      · status hämtad {{ site.status_at | ago }}
+    </div>
+  </div>
+  <div class="actions">
+    <form method="post" action="/sajt/{{ site.id }}/status"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" {{ 'disabled' if busy }}>Hämta status</button></form>
+    <form method="post" action="/sajt/{{ site.id }}/backup"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn" {{ 'disabled' if busy }}>Ta backup nu</button></form>
+    {% if pending %}
+    <form method="post" action="/sajt/{{ site.id }}/uppdatera" data-confirm="Uppdatera {{ pending | length }} st? Backup tas först, och går sajten sönder återställs den automatiskt.">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="btn primary" {{ 'disabled' if busy }}>Uppdatera allt ({{ pending | length }})</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% for j in running %}
+<div class="job" data-job="{{ j.id }}"><div class="spin"></div><div><div class="t">{{ JOB_NAMES.get(j.kind, j.kind) }}</div><div class="p muted small">{{ j.progress or 'I kö …' }}</div></div></div>
+{% endfor %}
+
+{% if not busy and recent_jobs and recent_jobs[0].status == 'error' and (now - recent_jobs[0].finished) < 86400 %}
+<div class="notice bad"><strong>{{ JOB_NAMES.get(recent_jobs[0].kind, recent_jobs[0].kind) }} misslyckades</strong> {{ recent_jobs[0].finished | ago }}: {{ recent_jobs[0].error }}</div>
+{% endif %}
+
+<div class="grid two">
+<div>
+
+  <!-- Uppdateringar -->
+  <div class="card">
+    <div class="card-head"><h2>Uppdateringar</h2>
+      {% if site.auto_update %}<span class="badge ok">automatiskt i natt</span>{% else %}<span class="badge">manuellt</span>{% endif %}
+    </div>
+    {% if pending %}
+    <div class="table-wrap"><table>
+      <tbody>
+      {% for i in pending %}
+        <tr>
+          <td><strong>{{ i.name }}</strong> <span class="muted small">{{ {'plugin':'tillägg','theme':'tema','core':'kärna','translations':''}[i.type] }}</span></td>
+          <td class="muted nowrap">{% if i.to %}{{ i.from }} → <strong style="color:var(--ink)">{{ i.to }}</strong>{% endif %}</td>
+          <td class="r nowrap">
+            {% if i.type in ('plugin','theme') %}
+            <form class="inline" method="post" action="/sajt/{{ site.id }}/las"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ i.slug }}"><input type="hidden" name="lock" value="1"><button class="btn ghost small" title="Uppdatera inte automatiskt">Lås</button></form>
+            {% endif %}
+            <form class="inline" method="post" action="/sajt/{{ site.id }}/uppdatera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ i.slug }}"><button class="btn small" {{ 'disabled' if busy }}>Uppdatera</button></form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="card-body muted">{{ 'Allt är uppdaterat.' if st else 'Ingen status hämtad ännu.' }}</div>
+    {% endif %}
+    {% if notes or skip %}
+    <div class="card-body" style="padding-top:12px">
+      {% for n in notes %}<div class="small muted">• {{ n }}</div>{% endfor %}
+      {% if skip %}
+      <div class="row small" style="margin-top:8px"><span class="muted">Låsta:</span>
+        {% for slug in skip %}
+        <form class="inline" method="post" action="/sajt/{{ site.id }}/las"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ slug }}"><input type="hidden" name="lock" value="0"><button class="badge" title="Lås upp">{{ slug.split('/')[0] }} ✕</button></form>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Backuper -->
+  <div class="card section">
+    <div class="card-head"><h2>Backuper</h2><span class="muted small">{{ backups | selectattr('status','equalto','done') | list | length }} st</span></div>
+    {% if backups %}
+    <div><table>
+      <thead><tr><th>Datum</th><th class="hide-sm">Typ</th><th class="r">Storlek</th><th></th></tr></thead>
+      <tbody>
+      {% for b in backups %}
+        <tr>
+          <td class="nowrap">{{ b.created | ts }}{% if b.note and b.note != KIND_NAMES.get(b.kind) %}<div class="muted small">{{ b.note }}</div>{% endif %}</td>
+          <td class="nowrap hide-sm">
+            {% if b.status == 'done' %}<span class="muted">{{ KIND_NAMES.get(b.kind, b.kind) }}</span>
+            {% elif b.status == 'running' %}<span class="badge">pågår</span>
+            {% else %}<span class="badge bad" title="{{ b.error }}">misslyckad</span>{% endif %}
+          </td>
+          <td class="r muted nowrap">{{ (b.size | bytes) if b.status == 'done' else '' }}<div class="small">{{ (b.files ~ ' filer') if b.status == 'done' else '' }}</div></td>
+          <td class="r">
+            {% if b.status == 'done' %}
+            <details class="use">
+              <summary class="btn small">Använd …</summary>
+              <form class="push-box" method="post" action="/backup/{{ b.id }}/push">
+                <input type="hidden" name="csrf_token" value="{{ csrf }}">
+                <select name="target">
+                  <option value="{{ site.id }}">Återställ den här sajten</option>
+                  {% for o in others %}<option value="{{ o.id }}">Flytta/klona till {{ o.name }}</option>{% endfor %}
+                </select>
+                <label class="check small"><input type="checkbox" name="confirm" value="1" required> Jag förstår att målsajten skrivs över (en säkerhetsbackup tas först).</label>
+                <div class="row" style="margin-top:8px">
+                  <button class="btn primary small" {{ 'disabled' if busy }}>Kör</button>
+                  <a class="btn small" href="/backup/{{ b.id }}/ladda-ner">Ladda ner</a>
+                </div>
+              </form>
+            </details>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="card-body muted">Inga backuper ännu.</div>
+    {% endif %}
+  </div>
+
+  <!-- Ögonblicksbilder -->
+  {% if st and st._snapshots %}
+  <div class="card section">
+    <div class="card-head"><h2>Före uppdateringar</h2><span class="muted small">kopior som kan läggas tillbaka direkt</span></div>
+    <div class="table-wrap"><table><tbody>
+      {% for snap in st._snapshots[:6] %}
+      <tr>
+        <td class="nowrap">{{ snap.created | ts }}</td>
+        <td>{% for i in snap['items'] %}{{ i.name }} <span class="muted">{{ i.before }}{% if i.after and i.after != i.before %} → {{ i.after }}{% endif %}</span>{{ ', ' if not loop.last }}{% endfor %}
+          {% if snap.rolled_back %}<span class="badge">återställd</span>{% endif %}</td>
+        <td class="r">
+          {% if snap.status in ('ready','updated') %}
+          <form class="inline" method="post" action="/sajt/{{ site.id }}/aterstall-uppdatering" data-confirm="Lägga tillbaka versionerna från före den här uppdateringen?">
+            <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="snapshot" value="{{ snap.id }}">
+            <button class="btn small" {{ 'disabled' if busy }}>Återställ</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody></table></div>
+  </div>
+  {% endif %}
+</div>
+
+<div>
+  <!-- Startsidan -->
+  <div class="card">
+    <div class="card-head"><h2>Startsidan</h2>
+      <form method="post" action="/sajt/{{ site.id }}/skarmdump"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn small" {{ 'disabled' if busy or not shots_on }}>Ny skärmdump</button></form>
+    </div>
+    <div class="card-body">
+      {% if fore and shot %}
+      <div class="shots-pair">
+        <figure><a class="shot" href="{{ fore }}" target="_blank" rel="noopener"><img src="{{ fore }}" alt="Startsidan före senaste uppdateringen" width="640" height="400"></a><figcaption>Före uppdatering · {{ fore_at | when }}</figcaption></figure>
+        <figure><a class="shot" href="{{ shot }}" target="_blank" rel="noopener"><img src="{{ shot }}" alt="Startsidan nu" width="640" height="400"></a><figcaption>Nu · {{ shot_at | when }}</figcaption></figure>
+      </div>
+      {% elif shot %}
+      <a class="shot" style="display:block" href="{{ shot }}" target="_blank" rel="noopener"><img src="{{ shot }}" alt="Startsidan på {{ site.name }}" width="640" height="400"><span class="stamp">{{ shot_at | when }}</span></a>
+      {% else %}
+      <div class="shot"><div class="empty-shot"><b aria-hidden="true">{{ site.name[:1] | upper }}</b><span>{{ 'Ingen skärmdump ännu' if shots_on else 'Skärmdumpar är inte installerade på servern' }}</span></div></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="card section">
+    <div class="card-head"><h2>Status</h2></div>
+    <table><tbody>
+      <tr><td class="muted">Tillgänglighet</td><td class="r">
+        {% if site.up == 1 %}<span class="badge ok">uppe</span>{% elif site.up == 0 %}<span class="badge bad">nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
+      <tr><td class="muted">Svarstid</td><td class="r">{{ (site.response_ms ~ ' ms') if site.response_ms else '–' }}</td></tr>
+      <tr><td class="muted">SSL-certifikat</td><td class="r">{% if site.ssl_days is none %}–{% elif site.ssl_days < 0 %}<span class="badge bad">kunde inte kontrolleras</span>{% else %}{{ site.ssl_days }} dagar kvar{% endif %}</td></tr>
+      <tr><td class="muted">Senaste backup</td><td class="r">{{ site.last_backup | ago }}</td></tr>
+      {% if st %}<tr><td class="muted">Ledigt på webbhotellet</td><td class="r">{{ (st.environment.disk_free | bytes) if st.environment.disk_free else '–' }}</td></tr>{% endif %}
+      {% if st and not st.environment.can_update %}<tr><td colspan="2"><span class="badge warn">kan inte uppdatera – webbhotellet kräver FTP</span></td></tr>{% endif %}
+    </tbody></table>
+  </div>
+
+  <!-- Händelser -->
+  <div class="card section">
+    <div class="card-head"><h2>Händelser</h2></div>
+    <div class="card-body">
+      {% if events %}
+      <ul class="events">
+      {% for e in events[:12] %}
+        <li><span class="lv {{ e.level }}"></span><div>
+          <div class="title">{{ e.title }}</div>
+          {% if e.detail %}<div class="detail">{{ e.detail }}</div>{% endif %}
+          <div class="when">{{ e.created | ts }}</div>
+        </div></li>
+      {% endfor %}
+      </ul>
+      {% else %}<span class="muted">Inget ännu.</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Inställningar -->
+  <div class="card section">
+    <div class="card-head"><h2>Inställningar</h2></div>
+    <div class="card-body">
+      <form method="post" action="/sajt/{{ site.id }}/installningar">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <label for="name" style="margin-top:0">Namn</label>
+        <input id="name" type="text" name="name" value="{{ site.name }}">
+        <label class="check"><input type="checkbox" name="auto_update" value="1" {{ 'checked' if site.auto_update }}> Uppdatera automatiskt efter nattens backup</label>
+        <p><button class="btn small">Spara</button></p>
+      </form>
+      <details class="more"><summary>Ny anslutningsnyckel …</summary>
+        <form method="post" action="/sajt/{{ site.id }}/ny-nyckel">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <textarea name="connection" placeholder="sv1:…" required></textarea>
+          <p><button class="btn small">Spara nyckel</button></p>
+        </form>
+      </details>
+      <details class="more" style="margin-top:8px"><summary>Ta bort från Sajtvakt …</summary>
+        <form method="post" action="/sajt/{{ site.id }}/ta-bort">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <div class="hint" style="margin-top:0">Alla backuper av sajten raderas. Själva WordPress-sajten påverkas inte. Skriv <strong>{{ site.name }}</strong> för att bekräfta.</div>
+          <input type="text" name="confirm" autocomplete="off" style="margin-top:8px">
+          <p><button class="btn small danger">Ta bort</button></p>
+        </form>
+      </details>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

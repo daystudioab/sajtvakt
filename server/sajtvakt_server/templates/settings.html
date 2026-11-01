@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Inställningar · Sajtvakt{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Inställningar</h1><div class="sub muted small">Tidszon {{ tz }} · lagrat totalt {{ usage | bytes }}</div></div></div>
+<div class="grid two">
+  <div class="card"><div class="card-body" style="padding-top:6px">
+    <form method="post" action="/installningar">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label for="h">Nattlig backup startar kl</label>
+      <select id="h" name="backup_hour">
+        {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if s.backup_hour|int == h }}>{{ '%02d' % h }}:00</option>{% endfor %}
+      </select>
+      <div class="hint">Sajterna tas i tur och ordning, några åt gången.</div>
+      <label for="r">Spara backuper i</label>
+      <div class="row"><input id="r" type="number" name="retention_days" min="3" max="365" value="{{ s.retention_days }}" style="width:110px"> <span class="muted">dagar</span></div>
+      <div class="hint">Manuella backuper sparas i 90 dagar. Den senaste backupen av varje sajt raderas aldrig.</div>
+      <label class="check" style="margin-top:16px"><input type="checkbox" name="auto_update" value="1" {{ 'checked' if s.auto_update == '1' }}> Automatiska uppdateringar efter nattens backup <span class="muted">(kan stängas av per sajt)</span></label>
+      <label for="e">Skicka larm till</label>
+      <input id="e" type="email" name="alert_email" value="{{ s.alert_email }}" placeholder="namn@exempel.se">
+      <div class="hint">Mejl skickas när en sajt går ner, en backup misslyckas eller en uppdatering återställs.</div>
+      <p style="margin-top:18px"><button class="btn primary">Spara</button></p>
+    </form>
+  </div></div>
+
+  <div>
+    <div class="card"><div class="card-body" style="padding-top:16px">
+      <h2>E-post för larm</h2>
+      <p class="muted small" style="margin:6px 0 0">Kontot larmen skickas från. För Loopia: server <code>mailcluster.loopia.se</code>, port 587, STARTTLS, och hela e-postadressen som användarnamn.</p>
+      <form method="post" action="/installningar/epost">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <label for="sh">Utgående server (SMTP)</label>
+        <input id="sh" type="text" name="host" value="{{ smtp.host }}" placeholder="mailcluster.loopia.se">
+        <div class="row" style="margin-top:0">
+          <div style="flex:1"><label for="sp">Port</label><input id="sp" type="number" name="port" value="{{ smtp.port or 587 }}"></div>
+          <div style="flex:2"><label for="st">Kryptering</label>
+            <select id="st" name="tls">
+              <option value="starttls" {{ 'selected' if smtp.tls == 'starttls' }}>STARTTLS (port 587)</option>
+              <option value="ssl" {{ 'selected' if smtp.tls == 'ssl' }}>SSL/TLS (port 465)</option>
+              <option value="none" {{ 'selected' if smtp.tls == 'none' }}>Ingen</option>
+            </select></div>
+        </div>
+        <label for="su">Användarnamn</label>
+        <input id="su" type="text" name="user" value="{{ smtp.user }}" placeholder="larm@sajtvakt.se" autocomplete="off">
+        <label for="spw">Lösenord</label>
+        <input id="spw" type="password" name="password" placeholder="{{ 'Sparat – lämna tomt för att behålla' if smtp.password else '' }}" autocomplete="new-password">
+        <label for="sf">Avsändare</label>
+        <input id="sf" type="text" name="sender" value="{{ smtp.sender }}" placeholder="larm@sajtvakt.se">
+        <p class="row" style="margin-top:14px"><button class="btn primary small">Spara</button></p>
+      </form>
+      <form method="post" action="/installningar/testmejl"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn small" {{ 'disabled' if not smtp.host }}>Skicka testmejl till {{ s.alert_email or '…' }}</button></form>
+      <div class="hint">Mottagaren anges till vänster under "Skicka larm till".</div>
+    </div></div>
+
+    <div class="card section"><div class="card-body" style="padding-top:16px">
+      <h2>Byt lösenord</h2>
+      <form method="post" action="/installningar/losenord">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <label>Nuvarande</label><input type="password" name="current" autocomplete="current-password" required>
+        <label>Nytt (minst 12 tecken)</label><input type="password" name="new" autocomplete="new-password" minlength="12" required>
+        <label>Nytt igen</label><input type="password" name="new2" autocomplete="new-password" minlength="12" required>
+        <p><button class="btn small">Byt lösenord</button></p>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

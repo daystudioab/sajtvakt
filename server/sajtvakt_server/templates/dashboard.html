@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Översikt · Sajtvakt{% endblock %}
+{% block content %}
+<div class="head">
+  <div class="title">
+    <h1>Översikt</h1>
+    <span class="mono muted">{{ now | dayline }}</span>
+  </div>
+  <div class="actions"><a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a></div>
+</div>
+
+{% if not mail_ok %}
+<div class="notice warn">E-postlarm är inte påslagna än. Fyll i e-post under <a href="/installningar">Inställningar</a>.</div>
+{% endif %}
+
+{% set warn_icon %}<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 18 16.5H2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.2" r="1.1" fill="currentColor"/></svg>{% endset %}
+
+<div class="top-row">
+  {% if down %}
+  <section class="attn bad" aria-labelledby="attn-h">
+    <div class="h">{{ warn_icon }}<h2 id="attn-h">{% if down | length == 1 %}{{ down[0].name }} är nere{% else %}{{ down | length }} sajter är nere{% endif %}</h2>
+      <span class="when">sedan {{ down[0].down_since | ts('%H:%M') }}</span></div>
+    <p>{% for d in down %}{{ d.name }} svarar inte som den ska{% if d.last_error %} ({{ d.last_error }}){% endif %}.{{ '\n' if not loop.last }}{% endfor %}
+Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 1 else 'de' }} är uppe.</p>
+    <div class="btns"><a class="btn primary" href="/sajt/{{ down[0].id }}">Visa sajten</a><a class="btn line" href="{{ down[0].url }}" target="_blank" rel="noopener">Öppna {{ down[0].url | host }}</a></div>
+  </section>
+  {% elif attention %}{% set a = attention[0] %}
+  <section class="attn warn" aria-labelledby="attn-h">
+    <div class="h">{{ warn_icon }}<h2 id="attn-h">{% if a.site_name %}{{ a.site_name }} · {% endif %}{{ a.title }}</h2><span class="when">{{ a.created | ago }}</span></div>
+    {% if a.detail %}<p>{{ a.detail | truncate(320) }}</p>{% endif %}
+    <div class="btns">
+      {% if a.site_id %}<a class="btn primary" href="/sajt/{{ a.site_id }}">Visa sajten</a>{% else %}<a class="btn primary" href="/handelser">Visa händelsen</a>{% endif %}
+      <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ a.ids | join(',') }}"><button class="btn line" title="Döljer den här varningen från översikten">{{ 'Kvittera' if attention | length == 1 else 'Kvittera, visa nästa' }}</button></form>
+      {% if attention | length > 1 %}<a class="more" href="/handelser">+{{ attention | length - 1 }} till att titta på</a>{% endif %}
+    </div>
+  </section>
+  {% else %}
+  <section class="attn ok" aria-labelledby="attn-h">
+    <div class="h"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2"/><path d="m6.5 10.2 2.4 2.4 4.6-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="attn-h">Allt lugnt</h2></div>
+    <p>{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% else %}Inget behöver göras just nu.
+{% if night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }} installerade{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}{% endif %}</p>
+  </section>
+  {% endif %}
+
+  <section class="kpis" aria-label="Nyckeltal">
+    <div class="kpi"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
+    <div class="kpi"><span class="l">Väntande uppd.</span><span class="n">{{ totals.updates }}</span></div>
+    <div class="kpi"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
+    <div class="kpi"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="u"> {{ parts[1] }}</span></span></div>
+  </section>
+</div>
+
+{% if not sites %}
+<div class="card empty">
+  <h2>Inga sajter ännu</h2>
+  <p>Installera Sajtvakt-pluginet på en WordPress-sajt, kopiera anslutningsnyckeln under Verktyg → Sajtvakt och klistra in den här.</p>
+  <a class="btn primary" href="/sajt/ny">Lägg till första sajten</a>
+</div>
+{% else %}
+<section aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
+  <div class="list-head">
+    <h2 id="sajter-h">Sajter <span class="mono muted" style="font-weight:400">{{ sites | length }}</span></h2>
+    <div class="legend" aria-hidden="true"><span><i style="background:var(--ok-bar)"></i>Backup</span><span><i style="background:#e0a33a"></i>Uppdatering återställd</span><span><i style="background:#e05547"></i>Ingen backup</span></div>
+  </div>
+  <div class="sites">
+  {% for s in sites %}{% set r = s.row %}
+    <a class="site-card {{ s.tone }}" href="/sajt/{{ r.id }}">
+      <div class="shot">
+        {% if s.shot %}<img src="{{ s.shot }}" alt="Startsidan på {{ r.name }}" loading="lazy" width="640" height="400">
+          <span class="stamp">{{ s.shot_at | ago }}</span>
+        {% else %}<div class="empty-shot"><b aria-hidden="true">{{ r.name[:1] | upper }}</b><span>{{ 'Skärmdump tas snart' if shots_on else 'Ingen skärmdump' }}</span></div>{% endif %}
+        {% if s.job %}<span class="busy">{{ JOB_NAMES.get(s.job.kind, s.job.kind) }} pågår</span>{% endif %}
+      </div>
+      <div class="id">
+        <div><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></div>
+        {% if r.up == 1 %}<span class="state"><span class="dot up"></span>{{ r.response_ms ~ ' ms' if r.response_ms else 'uppe' }}</span>
+        {% elif r.up == 0 %}<span class="state down"><span class="dot down"></span>nere</span>
+        {% else %}<span class="state unknown"><span class="dot"></span>okänd</span>{% endif %}
+      </div>
+      <div class="nights">
+        <div class="bar" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</div>
+        <span class="cap">{% if r.last_backup %}backup {{ r.last_backup | ts('%H:%M') if (now - r.last_backup) < 86400 else r.last_backup | ago }}{% else %}ingen backup än{% endif %} · 14 nätter</span>
+      </div>
+      <div class="meta3">
+        <div><span class="k">Uppd.</span>{% if s.updates %}<span class="tag warn">{{ s.updates }}{% if s.locked %} · {{ s.locked }} låst{% endif %}</span>{% elif s.st %}<span class="tag ok">aktuell</span>{% else %}<span class="tag">–</span>{% endif %}</div>
+        <div><span class="k">WP</span><span class="v">{{ s.st.versions.wordpress if s.st else '–' }}</span></div>
+        <div><span class="k">SSL</span>
+          {% if r.ssl_days is none %}<span class="tag">–</span>
+          {% elif r.ssl_days < 0 %}<span class="tag bad">fel</span>
+          {% elif r.ssl_days < 14 %}<span class="tag warn">{{ r.ssl_days }} d</span>
+          {% else %}<span class="tag">{{ r.ssl_days }} d</span>{% endif %}</div>
+      </div>
+    </a>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if log %}
+<section class="card section" aria-labelledby="logg-h" style="margin-top:26px">
+  <div class="card-head"><h2 id="logg-h">Logg</h2><a class="small" href="/handelser">Alla händelser</a></div>
+  <div class="card-body">
+    <ul class="log">
+    {% for e in log %}
+      <li><span class="t">{{ e.created | when }}</span><span class="lv {{ e.level }}">{{ LEVELS.get(e.level, e.level) }}</span>
+        <span class="m"><span class="s">{{ e.site_name or 'Sajtvakt' }}</span> — {{ e.title }}</span></li>
+    {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

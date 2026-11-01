@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Lägg till sajt · Sajtvakt{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Lägg till sajt</h1></div></div>
+<div class="grid two">
+  <div class="card"><div class="card-body" style="padding-top:6px">
+    <form method="post" action="/sajt/ny">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label for="c">Anslutningsnyckel</label>
+      <textarea id="c" name="connection" placeholder="sv1:…" required autofocus>{{ connection }}</textarea>
+      <div class="hint">Finns under <strong>Verktyg → Sajtvakt</strong> på WordPress-sajten.</div>
+      <label for="n">Namn <span class="muted">(valfritt)</span></label>
+      <input id="n" type="text" name="name" value="{{ name }}" placeholder="Hämtas från sajten om du lämnar tomt">
+      {% if error %}<div class="error-text">{{ error }}</div>{% endif %}
+      <p style="margin-top:18px"><button class="btn primary">Anslut sajten</button> <a class="btn ghost" href="/">Avbryt</a></p>
+    </form>
+  </div></div>
+  <div class="card"><div class="card-body" style="padding-top:16px">
+    <h2>Så här gör du</h2>
+    <ol class="muted" style="padding-left:18px;margin:10px 0 0">
+      <li>Ladda upp <code>sajtvakt.zip</code> under Tillägg → Lägg till nytt → Ladda upp, och aktivera.</li>
+      <li>Gå till Verktyg → Sajtvakt och klicka <em>Kopiera</em>.</li>
+      <li>Klistra in här. En första backup tas direkt.</li>
+      <li>Från i natt körs backup och uppdateringar automatiskt.</li>
+    </ol>
+  </div></div>
+</div>
+{% endblock %}

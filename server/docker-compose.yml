@@ -1,0 +1,30 @@
+name: sajtvakt-server  # samma projektnamn oavsett mapp – behåller certifikat och volymer
+
+services:
+  sajtvakt:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - SAJTVAKT_DOMAIN=${SAJTVAKT_DOMAIN:-sajtvakt.se}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - sajtvakt
+
+volumes:
+  caddy_data:
+  caddy_config:

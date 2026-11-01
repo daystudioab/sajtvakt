@@ -1,0 +1,6 @@
+# Körtidsdata och hemligheter stannar på servern
+server/data/
+server/.env
+__pycache__/
+*.pyc
+.DS_Store

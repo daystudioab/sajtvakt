@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0c0f11">
+<title>{% block title %}Sajtvakt{% endblock %}</title>
+<link rel="preload" href="/static/fonts/plex-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css?v={{ VERSION }}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect x='1' y='1' width='26' height='26' rx='7' fill='%230c0f11' stroke='%2346d49a' stroke-width='2'/%3E%3Cpath d='M6 15h4l2-5 4 9 2-4h4' fill='none' stroke='%2346d49a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+{% block body %}
+<div class="shell">
+  <aside class="side">
+    <a class="brand" href="/">{{ LOGO }} sajtvakt</a>
+    <nav aria-label="Huvudmeny">
+      <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+        Översikt</a>
+      <a href="/handelser" class="{{ 'on' if request.url.path == '/handelser' }}">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Händelser{% if side.attention %}<span class="count" aria-label="{{ side.attention }} att titta på">{{ side.attention }}</span>{% endif %}</a>
+      <a href="/installningar" class="{{ 'on' if request.url.path == '/installningar' }}">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Inställningar</a>
+    </nav>
+    <div class="foot">
+      <div class="meta"><div class="k">Nästa körning</div><div class="v">{{ side.next_run }}</div></div>
+      <div class="meta"><div class="k">Servern</div><div class="v {{ 'warn' if side.disk_warn or not side.mail_ok }}">disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</div></div>
+      <form method="post" action="/logga-ut"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="linkbtn">Logga ut</button></form>
+    </div>
+  </aside>
+  <main>
+    {% if flash %}<div class="flash {{ 'bad' if flash_bad }}" role="{{ 'alert' if flash_bad else 'status' }}">{{ flash }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
+<script>
+// Bekräftelser och jobbpolling, utan ramverk.
+document.addEventListener('submit', function (e) {
+  var msg = e.target.getAttribute('data-confirm');
+  if (msg && !confirm(msg)) e.preventDefault();
+});
+document.querySelectorAll('[data-job]').forEach(function (el) {
+  var id = el.getAttribute('data-job'), label = el.querySelector('.p');
+  (function poll() {
+    fetch('/jobb/' + id, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (label && j.progress) label.textContent = j.progress;
+      if (j.status === 'done' || j.status === 'error') { location.reload(); return; }
+      setTimeout(poll, 2000);
+    }).catch(function () { setTimeout(poll, 5000); });
+  })();
+});
+// Översikten: ladda om när ett jobb blir klart, så att korten visar läget.
+if (document.querySelector('[data-refresh]')) setTimeout(function () { location.reload(); }, 15000);
+</script>
+</body>
+</html>

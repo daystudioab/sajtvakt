@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Händelser · Sajtvakt{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Händelser</h1><div class="sub muted small">Allt Sajtvakt har gjort och upptäckt, senaste först.</div></div>
+  {% if side.attention %}<form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="alla" value="1"><button class="btn">Kvittera alla varningar ({{ side.attention }})</button></form>{% endif %}
+</div>
+<div class="card"><div class="card-body" style="padding-top:8px">
+  {% if events %}
+  <ul class="events">
+  {% for e in events %}
+    <li><span class="lv {{ e.level }}"></span><div>
+      <div class="title">{% if e.site_id %}<a href="/sajt/{{ e.site_id }}">{{ e.site_name }}</a>: {% endif %}{{ e.title }}</div>
+      {% if e.detail %}<div class="detail">{{ e.detail }}</div>{% endif %}
+      <div class="when">{{ e.created | ts }}</div>
+    </div></li>
+  {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Inga händelser ännu.</p>{% endif %}
+</div></div>
+{% endblock %}

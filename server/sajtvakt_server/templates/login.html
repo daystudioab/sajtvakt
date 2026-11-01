@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Logga in · Sajtvakt{% endblock %}
+{% block body %}
+<div class="login">
+  <div class="card">
+    <div class="brand">{{ LOGO }} sajtvakt</div>
+    {% if not configured %}
+      <p>Inget lösenord är satt ännu.</p>
+      <p class="muted small">Sätt <code>SAJTVAKT_ADMIN_PASSWORD</code> i <code>.env</code> på servern och starta om, logga sedan in här.</p>
+    {% else %}
+      <form method="post" action="/logga-in">
+        <label for="pw">Lösenord</label>
+        <input id="pw" type="password" name="password" autocomplete="current-password" autofocus required>
+        {% if error %}<div class="error-text">{{ error }}</div>{% endif %}
+        <p><button class="btn primary" style="width:100%">Logga in</button></p>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
