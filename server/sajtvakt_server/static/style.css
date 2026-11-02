@@ -370,3 +370,28 @@ details.use summary::-webkit-details-marker { display: none; }
 .need:first-child, .log li:first-child { border-top: 0; }
 .log li { padding: 10px 16px; border-top: 1px solid #1c201e; }
 .cols .main-col > .col-head, .side-col section > .col-head, .side-col section > h2 { padding-bottom: 2px; }
+
+/* ---- bakgrundsbild + glas (backdrop-blur) ---- */
+html { background: #0b0d0f; }
+body { background: transparent; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #0b0d0f url(bg.webp?v=1) center / cover no-repeat; pointer-events: none; }
+.side { background: rgba(10, 12, 13, .45); border-right-color: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); }
+.side nav a.on { background: rgba(255, 255, 255, .06); }
+.group, .needs, .log, .card, .flash, .notice, .job {
+  background: rgba(17, 20, 22, .55); border-color: rgba(255, 255, 255, .07);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25); backdrop-filter: blur(18px) saturate(1.25);
+}
+.notice.warn { background: rgba(40, 31, 12, .55); border-color: rgba(227, 162, 59, .25); }
+.notice.bad, .flash.bad { background: rgba(48, 18, 15, .55); border-color: rgba(226, 96, 79, .3); }
+.group > summary, .group-row { background: rgba(255, 255, 255, .035); }
+.group > summary:hover { background: rgba(255, 255, 255, .055); }
+.group:not([open]) > summary { background: transparent; }
+.site-row, .need, .log li, td, th { border-color: rgba(255, 255, 255, .06); }
+.site-row:hover { background: rgba(255, 255, 255, .035); }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=search], select, textarea { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .1); }
+form.search input[type=search] { -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-color: rgba(255, 255, 255, .07); }
+.btn:not(.primary) { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.thumb { background: rgba(255, 255, 255, .06); }
+.push-box { background: rgba(20, 23, 25, .85); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); }
+.login .card { background: rgba(17, 20, 22, .6); }
+@media (max-width: 900px) { .side { border-bottom-color: rgba(255, 255, 255, .06); } }
