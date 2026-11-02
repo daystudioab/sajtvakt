@@ -195,7 +195,7 @@ main { flex: 1; min-width: 0; padding: 30px 34px 60px; max-width: 1440px; }
 /* ---- etiketter ---- */
 /* Etiketter: fylld färg med vit text (kontrast minst 4,5:1). */
 .pill, .badge, .tag { font-family: var(--font); text-transform: none; letter-spacing: 0; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 99px; white-space: nowrap; color: var(--soft); background: #eef0ee; border: 0; line-height: 1.5; }
-.pill.ok, .badge.ok, .tag.ok, .pill.info { color: #fff; background: #1a7f55; }
+.pill.ok, .badge.ok, .tag.ok, .pill.info { color: var(--accent-ink); background: var(--accent); }
 .pill.warn, .badge.warn, .tag.warn { color: #fff; background: #9a5b00; }
 .pill.bad, .badge.bad, .tag.bad { color: #fff; background: #b3261e; }
 .pill.maint, .badge.maint, .tag.maint { color: #fff; background: #2457a6; }
