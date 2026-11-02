@@ -114,42 +114,42 @@ templates.env.globals["LOGO"] = Markup(
     'opacity=".16"/><rect x="2" y="2" width="34" height="34" rx="11" stroke="currentColor" stroke-width="2"/>'
     '<path d="M8 20h5l3-7 5 12 3-6h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
-# Ikoner före rubrikerna: tunna linjer, 16 px, färgen ärvs (currentColor).
+# Ikoner: Lucide (ISC-licens, lucide.dev) – 24 px rutnät, färgen ärvs (currentColor).
 _ICON_PATHS = {
-    "updates": '<path d="M2.5 8a5.5 5.5 0 0 1 9.6-3.7M13.5 8a5.5 5.5 0 0 1-9.6 3.7"/><path d="M12.5 1.8v2.8H9.7M3.5 14.2v-2.8h2.8"/>',
-    "backup": '<ellipse cx="8" cy="3.8" rx="5.5" ry="2"/><path d="M2.5 3.8v8.4c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V3.8M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/>',
-    "plugins": '<path d="M6 1.8v3M10 1.8v3M3.8 4.8h8.4v2.7a4.2 4.2 0 0 1-8.4 0Z"/><path d="M8 11.7v2.5"/>',
-    "copies": '<path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8"/><path d="M2.4 1.9v2.6H5M8 5v3.2l2.2 1.4"/>',
-    "screen": '<rect x="1.8" y="2.5" width="12.4" height="8.6" rx="1.3"/><path d="M5.5 14h5M8 11.1V14"/>',
-    "status": '<path d="M1.5 8.5h3l1.6-4 3.2 7.5 1.7-3.5h3.5"/>',
-    "events": '<path d="M5.5 4h8.5M5.5 8h8.5M5.5 12h8.5"/><circle cx="2.4" cy="4" r=".6"/><circle cx="2.4" cy="8" r=".6"/><circle cx="2.4" cy="12" r=".6"/>',
-    "settings": '<circle cx="8" cy="8" r="2.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/>',
-    "sites": '<rect x="1.8" y="1.8" width="5.2" height="5.2" rx="1"/><rect x="9" y="1.8" width="5.2" height="5.2" rx="1"/><rect x="1.8" y="9" width="5.2" height="5.2" rx="1"/><rect x="9" y="9" width="5.2" height="5.2" rx="1"/>',
-    "log": '<rect x="1.8" y="2.3" width="12.4" height="11.4" rx="1.3"/><path d="m4.6 6 2 2-2 2M8.2 10.2h3.2"/>',
-    "mail": '<rect x="1.8" y="3.3" width="12.4" height="9.4" rx="1.3"/><path d="m2.3 4 5.7 4.6L13.7 4"/>',
-    "lock": '<rect x="3" y="7" width="10" height="7" rx="1.3"/><path d="M5.3 7V5a2.7 2.7 0 0 1 5.4 0v2"/>',
-    "clock": '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.5"/>',
-    "info": '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.9v.1"/>',
-    "search": '<circle cx="7" cy="7" r="4.8"/><path d="m10.5 10.5 3.7 3.7"/>',
-    "logout": '<path d="M6.5 2.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3M10.5 11l3-3-3-3M13.5 8H6"/>',
-    "check": '<path d="m3 8.5 3 3 7-7"/>',
-    "shield": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/>',
-    "shield-ok": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/><path d="m5.6 8.1 1.7 1.7 3.2-3.3"/>',
-    "shield-alert": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/><path d="M8 5.2v3.3M8 10.6v.1"/>',
-    "warn": '<path d="M8 2.2 14.6 13.6H1.4Z"/><path d="M8 6.6v3M8 11.8v.1"/>',
-    "down": '<circle cx="8" cy="8" r="6.2"/><path d="m5.8 5.8 4.4 4.4M10.2 5.8l-4.4 4.4"/>',
-    "rollback": '<path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8"/><path d="M2.4 1.9v2.6H5"/>',
-    "maint": '<path d="M10.2 2.4a3.4 3.4 0 0 0-4.3 4.3L2.2 10.4a1.4 1.4 0 0 0 2 2l3.7-3.7a3.4 3.4 0 0 0 4.3-4.3l-2 2-1.8-.3-.3-1.8Z"/>',
-    "trash": '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/>',
-    "storage": '<path d="M2 5h12v8H2ZM4 5V3h8v2"/>',
-    "chev": '<path d="m6 3.5 4.5 4.5L6 12.5"/>',
-    "plus": '<path d="M8 3v10M3 8h10"/>',
-    "folder": '<path d="M1.8 4.2a1 1 0 0 1 1-1h3.4l1.5 1.6h5.5a1 1 0 0 1 1 1v6.9a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1Z"/>',
+    "updates": '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    "backup": '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',
+    "plugins": '<path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/>',
+    "copies": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    "screen": '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+    "status": '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+    "events": '<path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>',
+    "settings": '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
+    "sites": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+    "log": '<path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>',
+    "mail": '<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/>',
+    "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    "clock": '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    "info": '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    "search": '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+    "logout": '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
+    "check": '<path d="M20 6 9 17l-5-5"/>',
+    "shield": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    "shield-ok": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    "warn": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    "down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    "rollback": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+    "maint": '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>',
+    "trash": '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    "storage": '<path d="M10 16h.01"/><path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M21.946 12.013H2.054"/><path d="M6 16h.01"/>',
+    "chev": '<path d="m9 18 6-6-6-6"/>',
+    "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    "folder": '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
 }
 
 
 def _icon(name: str, cls: str = "ic") -> Markup:
-    return Markup(f'<svg class="{cls}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" '
+    return Markup(f'<svg class="{cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
                   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + _ICON_PATHS[name] + "</svg>")
 
 
@@ -886,6 +886,32 @@ def backup_push(request: Request, backup_id: int, csrf_token: str = Form(""), ta
     mode = "restore" if target_id == b["site_id"] else "migrate"
     return _start(target_id, mode, lambda j: jobs.do_push(backup_id, target_id, mode, j),
                   ("Återställning" if mode == "restore" else "Flytt") + " startad. En säkerhetsbackup av sajten tas först.")
+
+
+@app.post("/uppdatera-alla")
+def update_all(request: Request, csrf_token: str = Form("")):
+    """Uppdatera allt på alla sajter nu (samma säkra väg som natten: backup först, återställ det som går sönder)."""
+    csrf(request, csrf_token)
+    started, busy = [], []
+    for row in db.sites():
+        st = jobs.status_of(row)
+        if not st:
+            continue
+        pending, _notes = jobs.pending_updates(row, st)
+        if not pending:
+            continue
+        if jobs.busy(row["id"]):
+            busy.append(row["name"])
+            continue
+        jobs.submit("update", row["id"], lambda j, sid=row["id"]: jobs.do_update(sid, j))
+        started.append(row["name"])
+    if not started:
+        msg = "Inget att uppdatera just nu." if not busy else f"Jobb pågår redan på {', '.join(busy)} – försök igen när de är klara."
+        return back("/", msg, bad=bool(busy))
+    msg = f"Uppdaterar {len(started)} {'sajt' if len(started) == 1 else 'sajter'}: {', '.join(started)}. En backup tas först av varje."
+    if busy:
+        msg += f" Hoppade över {', '.join(busy)} (jobb pågår)."
+    return back("/", msg)
 
 
 @app.post("/backup/{backup_id}/ta-bort")

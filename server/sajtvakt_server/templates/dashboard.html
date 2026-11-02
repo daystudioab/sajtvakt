@@ -12,6 +12,11 @@
       <input id="sok" type="search" name="q" placeholder="Sök tillägg …" autocomplete="off">
       {{ icon("search") }}
     </form>
+    <form method="post" action="/uppdatera-alla" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="btn" {{ 'disabled' if not totals.updates }} title="{{ 'Uppdatera allt på alla sajter nu – en backup tas först' if totals.updates else 'Inget att uppdatera' }}"
+        data-confirm-btn="Uppdatera allt på alla sajter nu? En backup tas av varje sajt först, och det som går sönder återställs automatiskt.">{{ icon("updates") }}Uppdateringar{% if totals.updates %} ({{ totals.updates }}){% endif %}</button>
+    </form>
     <a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a>
   </div>
 </div>
@@ -20,12 +25,6 @@
 <div class="notice warn">E-postlarm är inte påslagna än. Fyll i e-post under <a href="/installningar">Inställningar</a>.</div>
 {% endif %}
 
-<section class="kpis" aria-label="Nyckeltal">
-  <div class="kpi"><span class="kic">{{ icon("status") }}</span><span class="kt"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></span></div>
-  <div class="kpi"><span class="kic">{{ icon("backup") }}</span><span class="kt"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></span></div>
-  <div class="kpi"><span class="kic">{{ icon("updates") }}</span><span class="kt"><span class="l">Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></span></div>
-  <div class="kpi"><span class="kic">{{ icon("storage") }}</span><span class="kt"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></span></div>
-</section>
 
 <div class="cols">
   <section class="main-col" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
@@ -98,6 +97,12 @@
       <div class="needs calm"><div class="need calm"><span class="sq"></span><span class="txt"><span class="t">Allt lugnt</span>
         <span class="d">{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% elif night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }}{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}</span></span></div></div>
       {% endif %}
+    </section>
+
+    <section class="kpis stack" aria-label="Nyckeltal">
+      <div class="kpi"><span class="kic">{{ icon("status") }}</span><span class="kt"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></span></div>
+      <div class="kpi"><span class="kic">{{ icon("backup") }}</span><span class="kt"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></span></div>
+      <div class="kpi"><span class="kic">{{ icon("storage") }}</span><span class="kt"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></span></div>
     </section>
 
     {% if log %}

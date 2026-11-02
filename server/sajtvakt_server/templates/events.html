@@ -9,7 +9,7 @@
   <ul class="events">
   {% for e in events %}
     <li><span class="lv {{ e.level }}"></span><div>
-      <div class="title">{% if e.site_id %}<a href="/sajt/{{ e.site_id }}">{{ e.site_name }}</a>: {% endif %}{{ e.title }}</div>
+      <div class="title">{% if e.site_id %}<a class="sn {{ e.level }}" href="/sajt/{{ e.site_id }}">{{ e.site_name }}</a>: {% endif %}{{ e.title }}</div>
       {% if e.detail %}<div class="detail">{{ e.detail }}</div>{% endif %}
       <div class="when">{{ e.created | ts }}</div>
     </div></li>
