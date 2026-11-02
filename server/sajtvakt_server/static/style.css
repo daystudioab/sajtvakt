@@ -155,18 +155,23 @@ main { flex: 1; min-width: 0; padding: 34px 40px 60px; max-width: 1440px; }
 .th, .site-row { display: grid; grid-template-columns: minmax(0, 1fr) 170px 110px; align-items: center; gap: 20px; }
 .th { display: none; }
 .th .r, .site-row .meta { text-align: right; }
-.group > summary, .group-row { list-style: none; display: flex; align-items: baseline; gap: 10px; padding: 22px 4px 8px; cursor: pointer; }
+/* Grupper: svag ram och en aning ljusare yta, rubriken på egen ton. */
+.group { margin-top: 14px; border: 1px solid #222724; border-radius: 12px; background: #121413; overflow: hidden; }
+.sites-table > .group:first-child { margin-top: 8px; }
+.group > summary, .group-row { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #161917; cursor: pointer; }
 .group > summary::-webkit-details-marker { display: none; }
-.group-row .chev { width: 11px; height: 11px; color: var(--dim); transition: transform .15s; flex: none; align-self: center; }
+.group > summary:hover { background: #1a1d1b; }
+.group-row .chev { width: 11px; height: 11px; color: var(--muted); transition: transform .15s; flex: none; }
 .group[open] .group-row .chev { transform: rotate(90deg); }
+.group:not([open]) > summary { background: #141715; }
 .group-row .gic { display: none; }
-.group-row .gname { font-size: 13px; font-weight: 600; color: #b9c1bc; }
+.group-row .gname { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .group-row .gcount { font-size: 12.5px; color: var(--dim); }
 .group-row .pill { margin-left: auto; font-size: 12.5px; color: var(--muted); font-weight: 400; }
 .group-row .pill::before { width: 9px; height: 9px; }
-.group > summary:hover .gname { color: var(--ink); }
-.site-row { padding: 12px 4px; border-top: 1px solid var(--line); color: var(--ink); }
-.site-row:hover { background: var(--hover); color: var(--ink); }
+.site-row { padding: 12px 16px; border-top: 1px solid #1c201e; color: var(--ink); }
+.site-row:hover { background: #171a18; color: var(--ink); }
+.sites-table > .site-row:first-child { border-top: 0; }
 .site-row .who { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .thumb { position: relative; width: 56px; height: 36px; border-radius: 6px; overflow: hidden; flex: none; background: var(--raise); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; opacity: .9; }
@@ -358,3 +363,10 @@ details.use summary::-webkit-details-marker { display: none; }
 .empty { text-align: center; padding: 48px 20px; }
 .empty p { color: var(--muted); max-width: 440px; margin: 8px auto 18px; }
 @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; } .kpi { gap: 12px; } .kpi .kic .ic { width: 24px; height: 24px; } .kpi .n { font-size: 24px; } }
+
+/* Indelningar: samma svaga ram och yta som grupperna. */
+.needs, .log { border: 1px solid #222724; border-radius: 12px; background: #121413; overflow: hidden; }
+.need { padding: 14px 16px; border-top: 1px solid #1c201e; }
+.need:first-child, .log li:first-child { border-top: 0; }
+.log li { padding: 10px 16px; border-top: 1px solid #1c201e; }
+.cols .main-col > .col-head, .side-col section > .col-head, .side-col section > h2 { padding-bottom: 2px; }
