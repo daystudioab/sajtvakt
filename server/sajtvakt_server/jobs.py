@@ -645,6 +645,45 @@ def do_remove(site_id: int, kind: str, slug: str, job_id: int | None = None) -> 
     return {"message": f"{name} är borttaget"}
 
 
+def do_remove_many(site_id: int, items: list[tuple[str, str]], job_id: int | None = None) -> dict:
+    """Avinstallera flera tillägg/teman i ett svep. En kopia sparas av varje, sajten kollas före och efter."""
+    row = db.site(site_id)
+    s = client(row)
+    maint = bool(row["maintenance"])
+    baseline = check_http(row["url"], maint)
+    done, failed = [], []
+    for n, (kind, slug) in enumerate(items, 1):
+        progress(job_id, f"Tar bort {n} av {len(items)} …")
+        try:
+            res = s.request("remove", {"type": kind, "slug": slug, "ref": secrets.token_hex(16)}, timeout=600)
+            done.append((kind, slug, res.get("name") or slug))
+        except SajtvaktError as e:
+            failed.append(f"{slug}: {e.message or e.code}")
+    refresh_status(site_id, job_id, refresh=False)
+    after = check_http(row["url"], maint)
+    names = [d[2] for d in done]
+    if done:
+        if baseline["ok"] and not healthy(after, baseline):
+            db.event(site_id, "error", f"Sajten fungerar inte efter att {len(done)} st togs bort",
+                     "Borttaget: " + ", ".join(names) + ". Lägg tillbaka dem under \"Sparade kopior\" på sajtens sida, eller återställ från backupen.")
+            mailer.send(f"Trasig efter avinstallation – {row['name']}",
+                        f"{row['url']} svarar inte som den ska efter att följande togs bort:\n\n" + "\n".join(names) +
+                        f"\n\n{config.PUBLIC_URL}/sajt/{site_id}")
+        else:
+            db.event(site_id, "ok", f"Avinstallerade {len(done)} st", ", ".join(names) +
+                     ". En kopia av varje finns under \"Sparade kopior\" om du ångrar dig.")
+    if failed:
+        db.event(site_id, "warning", f"{len(failed)} kunde inte tas bort", "\n".join(failed))
+    removed = {d[1] for d in done}
+    skip = set(json.loads(db.site(site_id)["skip_plugins"] or "[]"))
+    if skip & removed:
+        db.run("UPDATE sites SET skip_plugins = ? WHERE id = ?", json.dumps(sorted(skip - removed)), site_id)
+    msg = f"Tog bort {len(done)} st" + (f", {len(failed)} gick inte" if failed else "")
+    if failed and not done:
+        raise RuntimeError("Inget kunde tas bort: " + "; ".join(failed))
+    return {"message": msg}
+
+
 def do_shot(site_id: int, job_id: int | None = None) -> dict:
     row = db.site(site_id)
     progress(job_id, "Tar skärmdump av startsidan …")

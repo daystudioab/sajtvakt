@@ -752,6 +752,29 @@ def _version_at_least(have: str, need: str) -> bool:
 templates.env.globals["version_at_least"] = _version_at_least
 
 
+@app.post("/sajt/{site_id}/avinstallera-flera")
+def site_remove_many(request: Request, site_id: int, csrf_token: str = Form(""), items: list[str] = Form([])):
+    csrf(request, csrf_token)
+    row = _site_or_404(site_id)
+    st = jobs.status_of(row) or {}
+    have = (st.get("versions") or {}).get("sajtvakt") or "0"
+    if not _version_at_least(have, "0.3.1"):
+        return back(f"/sajt/{site_id}", f"Sajten har Sajtvakt-tillägget {have}, och avinstallation kräver 0.3.1.", bad=True)
+    plugins = {p["file"]: p for p in st.get("plugins", [])}
+    themes = {t["slug"]: t for t in st.get("themes", [])}
+    chosen: list[tuple[str, str]] = []
+    for it in dict.fromkeys(items):  # Unika, i den ordning de valdes.
+        kind, _, slug = it.partition(":")
+        if kind == "plugin" and slug in plugins and slug.split("/")[0] != "sajtvakt":
+            chosen.append(("plugin", slug))
+        elif kind == "theme" and slug in themes and not (themes[slug].get("active") or themes[slug].get("parent")):
+            chosen.append(("theme", slug))
+    if not chosen:
+        return back(f"/sajt/{site_id}", "Markera minst ett tillägg eller tema att ta bort.", bad=True)
+    return _start(site_id, "remove", lambda j: jobs.do_remove_many(site_id, chosen, j),
+                  f"Tar bort {len(chosen)} st … En kopia sparas av varje.")
+
+
 @app.post("/sajt/{site_id}/avinstallera")
 def site_remove(request: Request, site_id: int, csrf_token: str = Form(""), kind: str = Form(""), slug: str = Form("")):
     csrf(request, csrf_token)

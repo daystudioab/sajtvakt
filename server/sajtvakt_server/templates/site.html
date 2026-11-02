@@ -128,11 +128,20 @@
     <div class="card-head"><h2>{{ icon("plugins") }}Tillägg och teman</h2><span class="muted small">{{ st.plugins | length }} tillägg · {{ st.themes | length }} teman</span></div>
     {% set can_remove = version_at_least(st.versions.sajtvakt or '0', '0.3.1') %}
     {% if not can_remove %}<div class="card-body" style="padding-bottom:6px"><div class="notice warn" style="margin:0">För att avinstallera härifrån behöver sajten Sajtvakt-tillägget 0.3.1 (nu {{ st.versions.sajtvakt }}). Klicka <strong>Hämta status</strong> och sedan <strong>Uppdatera</strong> på raden Sajtvakt ovan – eller vänta till i natt, då sker det automatiskt.</div></div>{% endif %}
+    {% if can_remove %}
+    <form id="bulk-rm" class="bulk-bar" method="post" action="/sajt/{{ site.id }}/avinstallera-flera">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <span class="muted small" data-bulk-count>Markera flera för att ta bort dem på en gång.</span>
+      <button type="button" class="btn ghost small" data-bulk-inactive>Markera alla inaktiva</button>
+      <button class="btn small danger-outline" data-bulk-go disabled {{ 'data-busy' if busy }}>Avinstallera markerade</button>
+    </form>
+    {% endif %}
     <div class="table-wrap"><table>
-      <thead><tr><th>Tillägg</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
+      <thead><tr>{% if can_remove %}<th class="cb"><span class="sr">Markera</span></th>{% endif %}<th>Tillägg</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
       <tbody>
       {% for p in st.plugins | sort(attribute='name') %}
         <tr>
+          {% if can_remove %}<td class="cb">{% if p.file.split('/')[0] != 'sajtvakt' %}<input type="checkbox" name="items" value="plugin:{{ p.file }}" form="bulk-rm" data-inactive="{{ '0' if p.active else '1' }}" data-name="{{ p.name }}" aria-label="Markera {{ p.name }}">{% endif %}</td>{% endif %}
           <td><strong>{{ p.name }}</strong>{% if p.file in skip %} <span class="badge warn">Låst</span>{% endif %}</td>
           <td class="muted nowrap hide-sm mono">{{ p.version }}{% if p.update and p.update.version %} → {{ p.update.version }}{% endif %}</td>
           <td class="nowrap">{% if p.active %}<span class="badge ok">Aktivt</span>{% else %}<span class="badge">Inaktivt</span>{% endif %}</td>
@@ -148,10 +157,11 @@
         </tr>
       {% endfor %}
       </tbody>
-      <thead><tr><th>Tema</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
+      <thead><tr>{% if can_remove %}<th class="cb"></th>{% endif %}<th>Tema</th><th class="hide-sm">Version</th><th>Läge</th><th></th></tr></thead>
       <tbody>
       {% for t in st.themes | sort(attribute='name') %}
         <tr>
+          {% if can_remove %}<td class="cb">{% if not t.active and not t.parent %}<input type="checkbox" name="items" value="theme:{{ t.slug }}" form="bulk-rm" data-inactive="1" data-name="{{ t.name }}" aria-label="Markera {{ t.name }}">{% endif %}</td>{% endif %}
           <td><strong>{{ t.name }}</strong></td>
           <td class="muted nowrap hide-sm mono">{{ t.version }}{% if t.update and t.update.version %} → {{ t.update.version }}{% endif %}</td>
           <td class="nowrap">{% if t.active %}<span class="badge ok">Används</span>{% elif t.parent %}<span class="badge ok">Förälder</span>{% else %}<span class="badge">Används inte</span>{% endif %}</td>
@@ -333,5 +343,29 @@ document.querySelectorAll('select[data-new-group]').forEach(function (sel) {
   function sync() { var on = sel.value === '__ny__'; box.hidden = !on; if (on) inp.focus(); }
   sel.addEventListener('change', sync);
 });
+</script>
+<script>
+// Avinstallera flera: räkna markerade, markera alla inaktiva, bekräfta med namnen.
+(function () {
+  var form = document.getElementById('bulk-rm'); if (!form) return;
+  var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('input[form="bulk-rm"][name="items"]')); };
+  var go = form.querySelector('[data-bulk-go]'), label = form.querySelector('[data-bulk-count]'), hint = label.textContent;
+  function update() {
+    var on = boxes().filter(function (b) { return b.checked; });
+    go.disabled = !on.length || go.hasAttribute('data-busy');
+    go.textContent = on.length ? 'Avinstallera markerade (' + on.length + ')' : 'Avinstallera markerade';
+    label.textContent = on.length ? on.length + ' markerade' : hint;
+    var names = on.map(function (b) { return b.getAttribute('data-name'); });
+    go.setAttribute('data-confirm-btn', 'Avinstallera ' + on.length + ' st?\n\n' + names.join('\n') +
+      '\n\nEn kopia av varje sparas och kan läggas tillbaka, men deras egna inställningar kan försvinna.');
+  }
+  boxes().forEach(function (b) { b.addEventListener('change', update); });
+  form.querySelector('[data-bulk-inactive]').addEventListener('click', function () {
+    var inact = boxes().filter(function (b) { return b.getAttribute('data-inactive') === '1'; });
+    var all = inact.every(function (b) { return b.checked; });
+    inact.forEach(function (b) { b.checked = !all; }); update();
+  });
+  update();
+})();
 </script>
 {% endblock %}

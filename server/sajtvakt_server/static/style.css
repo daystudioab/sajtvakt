@@ -517,3 +517,12 @@ input[type=text], input[type=password], input[type=email], input[type=number], i
 
 /* Tiden i Behöver dig syns även mot det ljusare partiet i bakgrunden. */
 .need .w { color: var(--muted); }
+
+/* Avinstallera flera på en gång */
+.bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 20px 12px; margin: 0; }
+.bulk-bar [data-bulk-count] { margin-right: auto; }
+td.cb, th.cb { width: 38px; padding-right: 0; }
+td.cb input { width: 17px; height: 17px; accent-color: var(--bad-dot); cursor: pointer; vertical-align: middle; }
+.btn.danger-outline { color: var(--bad); border-color: rgba(252, 40, 82, .45); }
+.btn.danger-outline:hover { background: rgba(252, 40, 82, .1); border-color: var(--bad-dot); color: var(--bad); }
+.btn.danger-outline[disabled] { color: var(--dim); border-color: rgba(255, 255, 255, .08); }
