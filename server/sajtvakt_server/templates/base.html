@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0f1110">
 <title>{% block title %}Sajtvakt{% endblock %}</title>
 <link rel="preload" href="/static/fonts/sora-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/style.css?v={{ VERSION }}">
@@ -24,7 +24,7 @@
     <div class="foot">
       <div class="meta-box">
         <div class="meta"><div class="k">Nästa körning</div><div class="v">{{ side.next_run }}</div></div>
-        <div class="meta"><div class="k">Servern</div><div class="v {{ 'warn' if side.disk_warn or not side.mail_ok }}">Disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</div></div>
+        <div class="meta"><div class="v {{ 'warn' if side.disk_warn or not side.mail_ok }}">Disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</div></div>
       </div>
       <form method="post" action="/logga-ut"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="linkbtn">{{ icon("logout") }}Logga ut</button></form>
     </div>

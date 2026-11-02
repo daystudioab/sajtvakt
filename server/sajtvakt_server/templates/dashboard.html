@@ -41,13 +41,12 @@
     </div>
     {% else %}
     <div class="sites-table">
-      <div class="th" aria-hidden="true"><span>Sajt</span><span>7 nätter</span><span>Status</span><span class="r">Backup</span></div>
       {% for g in groups %}
         {% if g.name %}
         <details class="group" data-group="{{ g.name }}" open>
           <summary class="group-row">
             {{ icon("chev", "chev") }}
-            {{ icon("folder", "gic") }}<span class="gname">{{ g.name }}</span>
+            <span class="gname">{{ g.name }}</span>
             <span class="gcount">{{ g.meta }}</span>
             <span class="pill {{ g.kind }}">{{ g.label }}</span>
           </summary>
@@ -58,9 +57,8 @@
               <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="128" height="80">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
               <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
             </span>
-            <span class="nights" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</span>
             <span class="pill {{ s.kind }}">{{ s.label }}</span>
-            <span class="meta">{{ s.meta | replace('Backup ', '') or '–' }}</span>
+            <span class="meta" title="{{ s.nights_label }}">{{ (s.meta | replace('Backup ', '')).split(' · ')[0] or '–' }}</span>
           </a>
         {% endfor %}
         {% if g.name %}</details>{% endif %}
