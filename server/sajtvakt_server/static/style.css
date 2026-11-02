@@ -375,9 +375,9 @@ details.use summary::-webkit-details-marker { display: none; }
 .cols .main-col > .col-head, .side-col section > .col-head, .side-col section > h2 { padding-bottom: 2px; }
 
 /* ---- bakgrundsbild + glas (backdrop-blur) ---- */
-html { background: #0a0a0a; }
+html { background: #020a10; }
 body { background: transparent; }
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #0a0a0a url(bg.webp?v=2) center / cover no-repeat; pointer-events: none; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #020a10 url(bg.webp?v=3) center / cover no-repeat; pointer-events: none; }
 .side { background: rgba(10, 12, 13, .45); border-right-color: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); }
 .side nav a.on { background: rgba(255, 255, 255, .06); }
 .group, .needs, .log, .card, .flash, .notice, .job {
@@ -514,3 +514,6 @@ input[type=text], input[type=password], input[type=email], input[type=number], i
 .site-row.warn .thumb { box-shadow: 0 0 0 2px rgba(252, 164, 42, .45); }
 .site-row.bad .thumb { box-shadow: 0 0 0 2px rgba(252, 40, 82, .5); }
 .site-row.maint .thumb { box-shadow: 0 0 0 2px rgba(157, 95, 227, .5); }
+
+/* Tiden i Behöver dig syns även mot det ljusare partiet i bakgrunden. */
+.need .w { color: var(--muted); }
