@@ -239,16 +239,17 @@ def status_of(row) -> dict | None:
 FULL_EVERY_DAYS = 30  # En hel backup då och då, även när stegvisa fungerar – som extra säkerhet.
 
 
-def _backup_base(site_id: int) -> tuple[str, Path | None]:
+def _backup_base(site_id: int, kind: str = "nightly") -> tuple[str, Path | None]:
     """Grunden för en stegvis backup: senaste sparade backup med sajtens jobb-id.
-    Tom sträng = ta en hel backup (ingen grund, eller dags för månadens hela)."""
+    Tom sträng = ta en hel backup (ingen grund, eller dags för månadens hela).
+    Månadens hela backup tas bara på natten – en uppdatering ska aldrig behöva vänta på den."""
     last = db.one("SELECT * FROM backups WHERE site_id=? AND status='done' AND pjob IS NOT NULL AND path IS NOT NULL "
                   "ORDER BY created DESC LIMIT 1", site_id)
     if not last or not Path(last["path"]).exists():
         return "", None
     full = db.one("SELECT created FROM backups WHERE site_id=? AND status='done' AND pjob IS NOT NULL AND incremental=0 "
                   "ORDER BY created DESC LIMIT 1", site_id)
-    if not full or time.time() - full["created"] > FULL_EVERY_DAYS * 86400:
+    if kind == "nightly" and (not full or time.time() - full["created"] > FULL_EVERY_DAYS * 86400):
         return "", None
     return last["pjob"], Path(last["path"])
 
@@ -298,7 +299,7 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
                 p = j["progress"]
                 progress(job_id, f"Backup: filer ({p['files_done']}/{p['files_total']})")
         c = client(row)
-        base, base_dest = _backup_base(site_id)
+        base, base_dest = _backup_base(site_id, kind)
         progress(job_id, "Backup: startar (bara ändrade filer) …" if base else "Backup: startar …")
         man = c.backup(str(work), progress=prog, budget=step_budget(row), base=base, max_bytes=config.MAX_BACKUP_GB * 1024**3)
         progress(job_id, "Backup: sparar …")
