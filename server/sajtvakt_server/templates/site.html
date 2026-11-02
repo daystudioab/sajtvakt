@@ -4,7 +4,7 @@
 {% set busy = running | length > 0 %}
 <div class="head">
   <div>
-    <h1><span class="dot {{ 'down' if site.up == 0 else 'maint' if site.maintenance else 'up' if site.up == 1 }}"></span>{{ site.name }}{% if site.maintenance %} <span class="badge maint" style="vertical-align:4px">underhållsläge</span>{% endif %}</h1>
+    <h1><span class="dot {{ 'down' if site.up == 0 else 'maint' if site.maintenance else 'up' if site.up == 1 }}"></span>{{ site.name }}{% if site.maintenance %} <span class="badge maint" style="vertical-align:4px">Underhållsläge</span>{% endif %}</h1>
     <div class="sub muted small">
       <a href="{{ site.url }}" target="_blank" rel="noopener">{{ site.url | replace('https://','') | replace('http://','') | trim('/') }}</a>
       {% if st %} · WordPress {{ st.versions.wordpress }} · PHP {{ st.versions.php }} · Sajtvakt {{ st.versions.sajtvakt }}{% endif %}
@@ -37,14 +37,14 @@
   <!-- Uppdateringar -->
   <div class="card">
     <div class="card-head"><h2>{{ icon("updates") }}Uppdateringar</h2>
-      {% if site.auto_update %}<span class="badge ok">automatiskt i natt</span>{% else %}<span class="badge">manuellt</span>{% endif %}
+      {% if site.auto_update %}<span class="badge ok">Automatiskt i natt</span>{% else %}<span class="badge">Manuellt</span>{% endif %}
     </div>
     {% if pending %}
     <div class="table-wrap"><table>
       <tbody>
       {% for i in pending %}
         <tr>
-          <td><strong>{{ i.name }}</strong> <span class="muted small">{{ {'plugin':'tillägg','theme':'tema','core':'kärna','translations':''}[i.type] }}</span></td>
+          <td><strong>{{ i.name }}</strong> <span class="muted small">{{ {'plugin':'Tillägg','theme':'Tema','core':'Kärna','translations':''}[i.type] }}</span></td>
           <td class="muted nowrap">{% if i.to %}{{ i.from }} → <strong style="color:var(--ink)">{{ i.to }}</strong>{% endif %}</td>
           <td class="r nowrap">
             {% if i.type in ('plugin','theme','core') %}
@@ -65,7 +65,7 @@
       {% if skip %}
       <div class="row small" style="margin-top:8px"><span class="muted">Låsta:</span>
         {% for slug in skip %}
-        <form class="inline" method="post" action="/sajt/{{ site.id }}/las"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ slug }}"><input type="hidden" name="lock" value="0"><button class="badge" title="Lås upp">{{ slug.split('/')[0] }} ✕</button></form>
+        <form class="inline" method="post" action="/sajt/{{ site.id }}/las"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="slug" value="{{ slug }}"><input type="hidden" name="lock" value="0"><button class="badge" title="Lås upp">{{ skip_names.get(slug, slug.split('/')[0]) }} ✕</button></form>
         {% endfor %}
       </div>
       {% endif %}
@@ -85,8 +85,8 @@
           <td class="nowrap">{{ b.created | ts }}{% if b.note and b.note != KIND_NAMES.get(b.kind) %}<div class="muted small">{{ b.note }}</div>{% endif %}</td>
           <td class="nowrap hide-sm">
             {% if b.status == 'done' %}<span class="muted">{{ KIND_NAMES.get(b.kind, b.kind) }}</span>
-            {% elif b.status == 'running' %}<span class="badge">pågår</span>
-            {% else %}<span class="badge bad" title="{{ b.error }}">misslyckad</span>{% endif %}
+            {% elif b.status == 'running' %}<span class="badge">Pågår</span>
+            {% else %}<span class="badge bad" title="{{ b.error }}">Misslyckad</span>{% endif %}
           </td>
           <td class="r muted nowrap">{{ (b.size | bytes) if b.status == 'done' else '' }}<div class="small">{{ (b.files ~ ' filer') if b.status == 'done' else '' }}</div></td>
           <td class="r">
@@ -128,9 +128,9 @@
       <tbody>
       {% for p in st.plugins | sort(attribute='name') %}
         <tr>
-          <td><strong>{{ p.name }}</strong>{% if p.file in skip %} <span class="badge warn">låst</span>{% endif %}</td>
+          <td><strong>{{ p.name }}</strong>{% if p.file in skip %} <span class="badge warn">Låst</span>{% endif %}</td>
           <td class="muted nowrap hide-sm mono">{{ p.version }}{% if p.update and p.update.version %} → {{ p.update.version }}{% endif %}</td>
-          <td class="nowrap">{% if p.active %}<span class="badge ok">aktivt</span>{% else %}<span class="badge">inaktivt</span>{% endif %}</td>
+          <td class="nowrap">{% if p.active %}<span class="badge ok">Aktivt</span>{% else %}<span class="badge">Inaktivt</span>{% endif %}</td>
           <td class="r nowrap">
             {% if can_remove and p.file.split('/')[0] != 'sajtvakt' %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera"
@@ -149,7 +149,7 @@
         <tr>
           <td><strong>{{ t.name }}</strong></td>
           <td class="muted nowrap hide-sm mono">{{ t.version }}{% if t.update and t.update.version %} → {{ t.update.version }}{% endif %}</td>
-          <td class="nowrap">{% if t.active %}<span class="badge ok">används</span>{% elif t.parent %}<span class="badge ok">förälder</span>{% else %}<span class="badge">används inte</span>{% endif %}</td>
+          <td class="nowrap">{% if t.active %}<span class="badge ok">Används</span>{% elif t.parent %}<span class="badge ok">Förälder</span>{% else %}<span class="badge">Används inte</span>{% endif %}</td>
           <td class="r nowrap">
             {% if can_remove and not t.active and not t.parent %}
             <form class="inline" method="post" action="/sajt/{{ site.id }}/avinstallera" data-confirm="Ta bort temat {{ t.name }}? En kopia sparas och kan läggas tillbaka.">
@@ -173,8 +173,8 @@
       {% for snap in st._snapshots[:6] %}
       <tr>
         <td class="nowrap">{{ snap.created | ts }}</td>
-        <td>{% for i in snap['items'] %}{{ i.name }} <span class="muted">{{ i.before }}{% if i.removed %}</span> <span class="badge">avinstallerat</span>{% else %}{% if i.after and i.after != i.before %} → {{ i.after }}{% endif %}</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
-          {% if snap.rolled_back %}<span class="badge">återställd</span>{% endif %}</td>
+        <td>{% for i in snap['items'] %}{{ i.name }} <span class="muted">{{ i.before }}{% if i.removed %}</span> <span class="badge">Avinstallerat</span>{% else %}{% if i.after and i.after != i.before %} → {{ i.after }}{% endif %}</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}
+          {% if snap.rolled_back %}<span class="badge">Återställd</span>{% endif %}</td>
         <td class="r">
           {% if snap.status in ('ready','updated') %}
           <form class="inline" method="post" action="/sajt/{{ site.id }}/aterstall-uppdatering" data-confirm="Lägga tillbaka versionerna från före den här uppdateringen?">
@@ -215,12 +215,12 @@
     <div class="card-head"><h2>{{ icon("status") }}Status</h2></div>
     <table><tbody>
       <tr><td class="muted">Tillgänglighet</td><td class="r">
-        {% if site.up == 1 and site.maintenance %}<span class="badge maint">underhållsläge</span>
-        {% elif site.up == 1 %}<span class="badge ok">uppe</span>{% elif site.up == 0 %}<span class="badge bad">nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
+        {% if site.up == 1 and site.maintenance %}<span class="badge maint">Underhållsläge</span>
+        {% elif site.up == 1 %}<span class="badge ok">Uppe</span>{% elif site.up == 0 %}<span class="badge bad">Nere sedan {{ site.down_since | ts('%H:%M') }}</span>{% else %}<span class="muted">ej kontrollerad</span>{% endif %}</td></tr>
       <tr><td class="muted">Svarstid</td><td class="r">{{ (site.response_ms ~ ' ms') if site.response_ms else '–' }}</td></tr>
       <tr><td class="muted">Senaste backup</td><td class="r">{{ site.last_backup | ago }}</td></tr>
       {% if st %}<tr><td class="muted">Ledigt på webbhotellet</td><td class="r">{{ (st.environment.disk_free | bytes) if st.environment.disk_free else '–' }}</td></tr>{% endif %}
-      {% if st and not st.environment.can_update %}<tr><td colspan="2"><span class="badge warn">kan inte uppdatera – webbhotellet kräver FTP</span></td></tr>{% endif %}
+      {% if st and not st.environment.can_update %}<tr><td colspan="2"><span class="badge warn">Kan inte uppdatera – webbhotellet kräver FTP</span></td></tr>{% endif %}
     </tbody></table>
   </div>
 

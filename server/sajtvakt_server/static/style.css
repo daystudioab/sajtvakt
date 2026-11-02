@@ -1,11 +1,9 @@
-/* Sajtvakt – mjuk grafit. Typsnitt lokalt: Manrope (OFL), JetBrains Mono (OFL) för kod och versioner. */
-@font-face { font-family: "Manrope"; src: url(fonts/manrope-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Manrope"; src: url(fonts/manrope-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Manrope"; src: url(fonts/manrope-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Manrope"; src: url(fonts/manrope-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Manrope"; src: url(fonts/manrope-800.woff2) format("woff2"); font-weight: 800; font-display: swap; }
-@font-face { font-family: "JBMono"; src: url(fonts/mono-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "JBMono"; src: url(fonts/mono-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+/* Sajtvakt – mjuk grafit. Typsnitt lokalt: Figtree (OFL), rakt igenom. */
+@font-face { font-family: "Figtree"; src: url(fonts/figtree-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(fonts/figtree-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(fonts/figtree-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(fonts/figtree-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(fonts/figtree-800.woff2) format("woff2"); font-weight: 800; font-display: swap; }
 
 :root {
   color-scheme: dark;
@@ -39,8 +37,8 @@
   --maint-line: #2f5a8f;
   --link: #9cc8ff;
   --r: 24px;
-  --font: "Manrope", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --mono: "JBMono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font: "Figtree", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --tile: linear-gradient(180deg, #25282e 0%, #1d2025 100%);
   --tile-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .04);
   --raised: linear-gradient(160deg, #2c3037 0%, #22252b 60%, #1f2227 100%);
@@ -55,7 +53,7 @@ a:hover { color: #c8e0ff; }
 h1, h2, h3 { line-height: 1.2; margin: 0; }
 h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
 h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-code, .mono { font-family: var(--mono); font-size: 13px; }
+code, .mono { font-family: var(--mono); font-size: 13.5px; font-weight: 500; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 .nowrap { white-space: nowrap; }

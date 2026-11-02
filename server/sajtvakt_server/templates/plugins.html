@@ -29,8 +29,8 @@
       {% for x in g.on %}
         <tr>
           <td><a href="/sajt/{{ x.site.id }}" class="site-link">{{ x.site.name }}</a> <span class="muted small mono hide-sm">{{ x.site.url | host }}</span></td>
-          <td class="mono nowrap">{{ x.version }}{% if x.new %} <span class="muted">→ {{ x.new }}</span>{% endif %}{% if x.locked %} <span class="badge warn">låst</span>{% endif %}</td>
-          <td class="nowrap">{% if x.active %}<span class="badge ok">aktivt</span>{% else %}<span class="badge">inaktivt</span>{% endif %}</td>
+          <td class="mono nowrap">{{ x.version }}{% if x.new %} <span class="muted">→ {{ x.new }}</span>{% endif %}{% if x.locked %} <span class="badge warn">Låst</span>{% endif %}</td>
+          <td class="nowrap">{% if x.active %}<span class="badge ok">Aktivt</span>{% else %}<span class="badge">Inaktivt</span>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>

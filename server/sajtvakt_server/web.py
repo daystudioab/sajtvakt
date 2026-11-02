@@ -606,10 +606,15 @@ def site_page(request: Request, site_id: int):
     others = [s for s in db.sites() if s["id"] != site_id]
     skip = set(json.loads(row["skip_plugins"] or "[]"))
     pending, notes = jobs.pending_updates(row, st, include_major_core=True) if st else ([], [])
+    skip_names = {"wordpress": "WordPress"}
+    for p in (st or {}).get("plugins", []):
+        skip_names[p["file"]] = p["name"]
+    for t in (st or {}).get("themes", []):
+        skip_names[t["slug"]] = t["name"]
     fore_at = shots.taken_at(site_id, "fore")
     show_fore = bool(fore_at and time.time() - fore_at < 14 * 86400)
     return render(request, "site.html", site=row, st=st, backups=backups, events=events, running=running,
-                  recent_jobs=recent_jobs, others=others, skip=skip, pending=pending, notes=notes,
+                  recent_jobs=recent_jobs, others=others, skip=skip, pending=pending, notes=notes, skip_names=skip_names,
                   shot=shots.url_for(site_id), shot_at=shots.taken_at(site_id), shots_on=shots.available(),
                   fore=shots.url_for(site_id, "fore") if show_fore else None, fore_at=fore_at)
 
