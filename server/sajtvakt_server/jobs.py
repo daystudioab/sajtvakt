@@ -253,6 +253,23 @@ def _backup_base(site_id: int) -> tuple[str, Path | None]:
     return last["pjob"], Path(last["path"])
 
 
+PHASE_NAMES = {"db": "databas", "scan": "filskanning", "files": "filer", "finalize": "avslut", "save": "sparande"}
+
+
+def fmt_secs(s: float) -> str:
+    s = int(round(s))
+    if s < 60:
+        return f"{s} s"
+    if s < 3600:
+        return f"{s // 60} min {s % 60} s"
+    return f"{s // 3600} h {s % 3600 // 60} min"
+
+
+def fmt_timing(timing: dict) -> str:
+    parts = [f"{PHASE_NAMES.get(k, k)} {fmt_secs(v)}" for k, v in timing.items() if k != "total" and v >= 1]
+    return f"Tid {fmt_secs(timing.get('total', 0))}" + (": " + " · ".join(parts) if parts else "")
+
+
 def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, note: str = "") -> int:
     row = db.site(site_id)
     backup_id = db.run("INSERT INTO backups(site_id, created, kind, status, note) VALUES(?,?,?,?,?)",
@@ -260,8 +277,20 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
     work = config.TMP_DIR / f"dl-{site_id}-{backup_id}"
     shutil.rmtree(work, ignore_errors=True)
     dest = store.backup_path(site_id, backup_id)
+    t_start = time.time()
+    timing: dict[str, float] = {}
+    cur = [None, t_start]  # [fas, när den började]
+
+    def mark(phase):
+        now = time.time()
+        if cur[0]:
+            timing[cur[0]] = timing.get(cur[0], 0) + now - cur[1]
+        cur[0], cur[1] = phase, now
+
     try:
         def prog(j):
+            if j.get("phase") != cur[0]:
+                mark(j.get("phase"))
             if j.get("phase") == "db":
                 p = j["progress"]
                 progress(job_id, f"Backup: databasen ({p['tables_done']}/{p['tables_total']} tabeller)")
@@ -273,6 +302,7 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
         progress(job_id, "Backup: startar (bara ändrade filer) …" if base else "Backup: startar …")
         man = c.backup(str(work), progress=prog, budget=step_budget(row), base=base, max_bytes=config.MAX_BACKUP_GB * 1024**3)
         progress(job_id, "Backup: sparar …")
+        mark("save")
         try:
             stats = store.ingest(work, dest, base_dest)
         except store.BaseMismatch as e:
@@ -284,10 +314,17 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
             progress(job_id, "Backup: tar en hel backup …")
             man = c.backup(str(work), progress=prog, budget=step_budget(row), max_bytes=config.MAX_BACKUP_GB * 1024**3)
             progress(job_id, "Backup: sparar …")
+            mark("save")
             stats = store.ingest(work, dest)
-        db.run("UPDATE backups SET status='done', size=?, files=?, tables=?, path=?, pjob=?, incremental=?, fetched=? WHERE id=?",
+        mark(None)
+        timing["total"] = time.time() - t_start
+        if "total" not in timing:
+            mark(None)
+            timing["total"] = time.time() - t_start
+        db.run("UPDATE backups SET status='done', size=?, files=?, tables=?, path=?, pjob=?, incremental=?, fetched=?, timing=? WHERE id=?",
                stats["size"], stats["files"], man.get("tables", 0), str(dest), man.get("job") or man.get("_job"),
-               1 if stats.get("incremental") else 0, stats.get("fetched", stats["size"]), backup_id)
+               1 if stats.get("incremental") else 0, stats.get("fetched", stats["size"]),
+               json.dumps({k: round(v, 1) for k, v in timing.items()}), backup_id)
         c.finish_backup(man["_job"], keep=True)  # Nu är den sparad – sajten använder den som grund nästa gång.
         db.set_setting("store_usage_at", "0")  # Lagret växte – räkna om siffran vid nästa sidvisning.
         db.run("UPDATE sites SET last_backup = ? WHERE id = ?", int(time.time()), site_id)
@@ -300,7 +337,7 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
                       f"Hämtade {fmt_bytes(stats['fetched'])} av {fmt_bytes(stats['size'])} (nytt i lagret: {fmt_bytes(stats['new_bytes'])})")
         else:
             detail = f"{stats['files']} filer, {man.get('tables', 0)} tabeller, {fmt_bytes(stats['size'])} (nytt i lagret: {fmt_bytes(stats['new_bytes'])})"
-        db.event(site_id, "ok", "Backup klar", detail)
+        db.event(site_id, "ok", "Backup klar", detail + "\n" + fmt_timing(timing))
         return backup_id
     except Exception as e:
         msg = e.message if isinstance(e, SajtvaktError) else str(e)

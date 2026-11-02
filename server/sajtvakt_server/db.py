@@ -119,6 +119,8 @@ def init() -> None:
         conn().execute("ALTER TABLE backups ADD COLUMN incremental INTEGER NOT NULL DEFAULT 0")
     if "fetched" not in bcols:  # Byte som faktiskt hämtades från sajten.
         conn().execute("ALTER TABLE backups ADD COLUMN fetched INTEGER NOT NULL DEFAULT 0")
+    if "timing" not in bcols:  # Sekunder per fas (JSON) – för att se var tiden går.
+        conn().execute("ALTER TABLE backups ADD COLUMN timing TEXT")
     config.DB_PATH.chmod(0o600)
 
 
