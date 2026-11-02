@@ -128,7 +128,7 @@ def add_site(connection: str, name: str = "") -> int:
         endpoint = "frontend"
         s = Site(url, key, timeout=60, endpoint=endpoint)
         info = s.ping()
-    rescue = info.get("rescue")
+    rescue = trusted_site_url(url, info.get("rescue"))
     st = s.status()
     name = name.strip() or st["site"]["name"] or urlparse(url).netloc
     now = int(time.time())
@@ -148,13 +148,28 @@ def add_site(connection: str, name: str = "") -> int:
     return sid
 
 
+def trusted_site_url(site_url: str, candidate) -> str | None:
+    """Adresser ur sajtens egna svar (nödingång, canary, Wordfence-länk) godtas bara om de
+    pekar på sajtens eget värdnamn – en hackad sajt får inte styra servern mot andra adresser."""
+    if not isinstance(candidate, str) or not candidate:
+        return None
+    try:
+        c, s = urlparse(candidate), urlparse(site_url)
+    except ValueError:
+        return None
+    if c.scheme not in ("http", "https") or not c.hostname or c.hostname != s.hostname or c.port != s.port:
+        return None
+    return candidate
+
+
 def check_safety_nets(site_id: int) -> None:
     """Fungerar nödingången? Och är Sajtvakts datamapp skyddad mot åtkomst utifrån?"""
     row = db.site(site_id)
     st = status_of(row) or {}
     info = st.get("sajtvakt") or {}
     # Prova vägarna i tur och ordning: den som fungerade sist, filen i WordPress-roten, filen i plugins-mappen.
-    candidates = [u for u in (row["rescue_url"], info.get("rescue_alt"), info.get("rescue")) if u]
+    candidates = [u for u in (row["rescue_url"], trusted_site_url(row["url"], info.get("rescue_alt")),
+                              trusted_site_url(row["url"], info.get("rescue"))) if u]
     candidates = list(dict.fromkeys(candidates))
     working, last_error = None, None
     for url in candidates:
@@ -175,7 +190,7 @@ def check_safety_nets(site_id: int) -> None:
                  "Om en uppdatering kraschar WordPress helt kan Sajtvakt inte återställa automatiskt – "
                  "bara från backup. Uppdatera Sajtvakt-tillägget till senaste versionen; den lägger en nödingång i "
                  f"WordPress-roten som fungerar även när webbhotellet spärrar plugins-mappen. ({last_error})")
-    canary = (st.get("sajtvakt") or {}).get("canary")
+    canary = trusted_site_url(row["url"], (st.get("sajtvakt") or {}).get("canary"))
     if canary:
         try:
             with urllib.request.urlopen(urllib.request.Request(canary, headers={"User-Agent": "Sajtvakt"}), timeout=20) as r:
@@ -199,9 +214,20 @@ def refresh_status(site_id: int, job_id: int | None = None, refresh: bool = True
         st["_snapshots"] = []
     # rescue_url väljs av check_safety_nets (den väg som faktiskt fungerar) – sätts här bara om den saknas.
     db.run("UPDATE sites SET status_json = ?, status_at = ?, last_error = NULL, rescue_url = COALESCE(rescue_url, ?) WHERE id = ?",
-           json.dumps(st), int(time.time()), st.get("sajtvakt", {}).get("rescue"), site_id)
+           json.dumps(st), int(time.time()), trusted_site_url(row["url"], st.get("sajtvakt", {}).get("rescue")), site_id)
     security_changed(site_id, old_sec, st.get("security"))
     return st
+
+
+def stored_usage() -> int:
+    """Lagrets storlek, cachad i en timme – att gå igenom alla blobbar är för dyrt för varje sidvisning."""
+    now = int(time.time())
+    if now - int(db.setting("store_usage_at") or 0) < 3600 and db.setting("store_usage"):
+        return int(db.setting("store_usage"))
+    n = store.usage()
+    db.set_setting("store_usage", str(n))
+    db.set_setting("store_usage_at", str(now))
+    return n
 
 
 def status_of(row) -> dict | None:
@@ -245,7 +271,7 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
         c = client(row)
         base, base_dest = _backup_base(site_id)
         progress(job_id, "Backup: startar (bara ändrade filer) …" if base else "Backup: startar …")
-        man = c.backup(str(work), progress=prog, budget=step_budget(row), base=base)
+        man = c.backup(str(work), progress=prog, budget=step_budget(row), base=base, max_bytes=config.MAX_BACKUP_GB * 1024**3)
         progress(job_id, "Backup: sparar …")
         try:
             stats = store.ingest(work, dest, base_dest)
@@ -256,13 +282,14 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
             shutil.rmtree(work, ignore_errors=True)
             shutil.rmtree(dest, ignore_errors=True)
             progress(job_id, "Backup: tar en hel backup …")
-            man = c.backup(str(work), progress=prog, budget=step_budget(row))
+            man = c.backup(str(work), progress=prog, budget=step_budget(row), max_bytes=config.MAX_BACKUP_GB * 1024**3)
             progress(job_id, "Backup: sparar …")
             stats = store.ingest(work, dest)
         db.run("UPDATE backups SET status='done', size=?, files=?, tables=?, path=?, pjob=?, incremental=?, fetched=? WHERE id=?",
                stats["size"], stats["files"], man.get("tables", 0), str(dest), man.get("job") or man.get("_job"),
                1 if stats.get("incremental") else 0, stats.get("fetched", stats["size"]), backup_id)
         c.finish_backup(man["_job"], keep=True)  # Nu är den sparad – sajten använder den som grund nästa gång.
+        db.set_setting("store_usage_at", "0")  # Lagret växte – räkna om siffran vid nästa sidvisning.
         db.run("UPDATE sites SET last_backup = ? WHERE id = ?", int(time.time()), site_id)
         if man.get("skipped"):
             db.event(site_id, "warning", f"Backup klar men {len(man['skipped'])} filer hoppades över",

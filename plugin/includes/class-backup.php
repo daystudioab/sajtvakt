@@ -155,7 +155,7 @@ final class Sajtvakt_Backup {
 				'started' => false,
 				'gz_size' => 0,
 			),
-			'files'   => array( 'total' => 0, 'index' => 0, 'part' => 0, 'bytes' => 0, 'skipped' => array(), 'all' => 0, 'incremental' => false ),
+			'files'   => array( 'total' => 0, 'index' => 0, 'part' => 0, 'bytes' => 0, 'skipped' => array(), 'failed' => array(), 'all' => 0, 'incremental' => false ),
 			'outputs' => array(),
 			'error'   => null,
 		);
@@ -277,8 +277,18 @@ final class Sajtvakt_Backup {
 				gzwrite( $gz, "\n-- Tabell {$t}\nDROP TABLE IF EXISTS " . self::q( $t ) . ";\n" . $create[1] . ";\n" );
 			}
 
-			$pk    = isset( $job['db']['pk'][ $t ] ) ? $job['db']['pk'][ $t ] : array();
-			$order = $pk ? ' ORDER BY ' . implode( ', ', array_map( array( __CLASS__, 'q' ), $pk ) ) : '';
+			$pk         = isset( $job['db']['pk'][ $t ] ) ? $job['db']['pk'][ $t ] : array();
+			$order_cols = $pk;
+			if ( ! $order_cols ) {
+				// Utan primärnyckel är radordningen inte garanterad mellan frågor – sortera på alla
+				// kolumner, annars kan rader dubbleras eller tappas när dumpen tas i flera steg.
+				if ( ! isset( $job['db']['allcols'][ $t ] ) ) {
+					$cols                       = $wpdb->get_col( 'SHOW COLUMNS FROM ' . self::q( $t ), 0 );
+					$job['db']['allcols'][ $t ] = $cols ? $cols : array();
+				}
+				$order_cols = $job['db']['allcols'][ $t ];
+			}
+			$order = $order_cols ? ' ORDER BY ' . implode( ', ', array_map( array( __CLASS__, 'q' ), $order_cols ) ) : '';
 			if ( 1 === count( $pk ) ) {
 				// Keyset pagination: fast on big tables, and no skipped rows if the table changes meanwhile.
 				$where = ( 0 === $offset || ! isset( $job['db']['last'] ) ) ? '' : $wpdb->prepare( ' WHERE ' . self::q( $pk[0] ) . ' > %s', $job['db']['last'] );
@@ -435,21 +445,10 @@ final class Sajtvakt_Backup {
 		}
 		fclose( $out );
 
-		// The full list goes to the server (so it knows what to take from the last backup)
-		// and is kept here as the baseline-to-be until the server confirms.
+		// The full list is kept as the baseline-to-be until the server confirms. The index the
+		// server needs (index.json.gz) is written in finalize, from what was ACTUALLY zipped –
+		// a file that vanishes between scan and zip must not stay in either list.
 		Sajtvakt_Core::write_json( self::pending_file( $job['id'] ), array( 'job' => $job['id'], 'files' => $all ) );
-		if ( null !== $known ) {
-			$rows = array();
-			foreach ( $all as $rel => $v ) {
-				$rows[] = array( $rel, $v[0], $v[1] );
-			}
-			$gz = gzencode( json_encode( $rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), 6 );
-			if ( false === $gz || false === file_put_contents( self::job_dir( $job['id'] ) . '/index.json.gz', $gz ) ) {
-				throw new Exception( 'Kunde inte skriva fillistan.' );
-			}
-			unset( $rows, $gz );
-			$job['outputs'][] = self::describe_output( $job['id'], 'index.json.gz' );
-		}
 
 		$job['files']['incremental'] = null !== $known;
 		$job['files']['all']         = count( $all );
@@ -496,8 +495,11 @@ final class Sajtvakt_Backup {
 				}
 				$bytes += $size;
 				$added++;
-			} elseif ( count( $job['files']['skipped'] ) < 200 ) {
-				$job['files']['skipped'][] = array( 'file' => $rel, 'reason' => 'försvann eller ej läsbar' );
+			} else {
+				$job['files']['failed'][] = $rel;
+				if ( count( $job['files']['skipped'] ) < 200 ) {
+					$job['files']['skipped'][] = array( 'file' => $rel, 'reason' => 'försvann eller ej läsbar' );
+				}
 			}
 			$index++;
 		}
@@ -523,6 +525,31 @@ final class Sajtvakt_Backup {
 
 	private static function finalize( array $job ) {
 		global $wp_version;
+
+		// Baslinjen och fillistan ska bara innehålla det som faktiskt packades.
+		$failed  = isset( $job['files']['failed'] ) ? (array) $job['files']['failed'] : array();
+		$pending = Sajtvakt_Core::read_json( self::pending_file( $job['id'] ) );
+		if ( is_array( $pending ) && isset( $pending['files'] ) && is_array( $pending['files'] ) ) {
+			foreach ( $failed as $rel ) {
+				unset( $pending['files'][ $rel ] );
+			}
+			if ( $failed ) {
+				Sajtvakt_Core::write_json( self::pending_file( $job['id'] ), $pending );
+			}
+			$job['files']['all'] = count( $pending['files'] );
+			if ( ! empty( $job['files']['incremental'] ) ) {
+				$rows = array();
+				foreach ( $pending['files'] as $rel => $v ) {
+					$rows[] = array( $rel, $v[0], $v[1] );
+				}
+				$gz = gzencode( json_encode( $rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), 6 );
+				if ( false === $gz || false === file_put_contents( self::job_dir( $job['id'] ) . '/index.json.gz', $gz ) ) {
+					throw new Exception( 'Kunde inte skriva fillistan.' );
+				}
+				unset( $rows, $gz );
+				$job['outputs'][] = self::describe_output( $job['id'], 'index.json.gz' );
+			}
+		}
 
 		$manifest = array(
 			'format'    => 'sajtvakt-backup-1',
@@ -634,8 +661,10 @@ final class Sajtvakt_Backup {
 	public static function finish( $id, $keep = false ) {
 		if ( Sajtvakt_Core::valid_id( (string) $id ) ) {
 			// The server stored this backup – it becomes the baseline for the next incremental one.
+			// Only a job that actually completed may become the baseline.
+			$job     = self::load( $id );
 			$pending = self::pending_file( $id );
-			if ( $keep && is_file( $pending ) ) {
+			if ( $keep && $job && 'done' === $job['status'] && is_file( $pending ) ) {
 				@rename( $pending, self::baseline_file() ); // phpcs:ignore
 			}
 			Sajtvakt_Core::rrmdir( self::job_dir( $id ) );

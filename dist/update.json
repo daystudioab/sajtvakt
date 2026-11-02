@@ -1,11 +1,11 @@
 {
-  "version": "0.5.0",
-  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.5.0.zip",
-  "sha256": "c863d0951912c075d39b86377a9393ae2bfc1634910d6dc27cd198a8cde726b1",
+  "version": "0.6.0",
+  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.6.0.zip",
+  "sha256": "1f2a8839ec409d04938b240daf93a42a887d3592ff3a7ff94d27bb08b12d013a",
   "requires": "6.0",
   "requires_php": "7.4",
   "date": "2026-11-02",
   "changes": [
-    "Stegvis backup: bara nya och ändrade filer skickas till Sajtvakt-servern, resten tas från förra backupen"
+    "Säkerhetsgranskning: kontrollsumma verifieras vid självuppdatering, kraschsäker återställnings-commit, korrekt baslinje för stegvisa backuper, ORDER BY för tabeller utan primärnyckel"
   ]
 }

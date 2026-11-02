@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) && ! defined( 'SAJTVAKT_RESCUE' ) ) {
 
 final class Sajtvakt_Core {
 
-	const VERSION   = '0.5.0';
+	const VERSION   = '0.6.0';
 	const MAX_SKEW  = 300;  // Seconds a signed request may differ from server time.
 	const NONCE_TTL = 900;  // Seconds a used nonce is remembered.
 	const GUARD     = "<?php exit; ?>\n";

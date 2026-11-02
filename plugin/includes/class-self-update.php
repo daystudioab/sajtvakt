@@ -21,6 +21,7 @@ final class Sajtvakt_Self_Update {
 	);
 
 	public static function init() {
+		add_filter( 'upgrader_pre_download', array( __CLASS__, 'verify_download' ), 10, 3 );
 		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'inject' ) );
 		add_filter( 'plugins_api', array( __CLASS__, 'info' ), 10, 3 );
 		add_filter( 'upgrader_source_selection', array( __CLASS__, 'keep_folder' ), 10, 4 );
@@ -29,6 +30,44 @@ final class Sajtvakt_Self_Update {
 
 	private static function basename() {
 		return plugin_basename( SAJTVAKT_FILE );
+	}
+
+	/**
+	 * Hämtar Sajtvakts eget uppdateringspaket och kontrollerar dess sha256 mot update.json
+	 * innan WordPress får installera det. Utan kontrollen vore skrivåtkomst till repots
+	 * main-gren detsamma som kodkörning på alla sajter.
+	 */
+	public static function verify_download( $reply, $package, $upgrader ) {
+		if ( false !== $reply || ! is_string( $package ) ) {
+			return $reply;
+		}
+		$ours = false;
+		foreach ( self::ALLOWED as $prefix ) {
+			if ( 0 === strpos( $package, $prefix ) ) {
+				$ours = true;
+				break;
+			}
+		}
+		if ( ! $ours ) {
+			return $reply;
+		}
+		$info = self::latest();
+		if ( ! $info || empty( $info['sha256'] ) || ! isset( $info['package'] ) || $info['package'] !== $package ) {
+			return $reply; // Ingen publicerad kontrollsumma för just det här paketet – låt WP sköta hämtningen.
+		}
+		if ( ! function_exists( 'download_url' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		$file = download_url( $package, 300 );
+		if ( is_wp_error( $file ) ) {
+			return $file;
+		}
+		$hash = (string) hash_file( 'sha256', $file );
+		if ( ! hash_equals( strtolower( (string) $info['sha256'] ), strtolower( $hash ) ) ) {
+			@unlink( $file ); // phpcs:ignore
+			return new WP_Error( 'sajtvakt_bad_hash', 'Sajtvakt-paketets kontrollsumma stämmer inte med update.json – uppdateringen avbröts.' );
+		}
+		return $file;
 	}
 
 	/** Senaste versionen enligt repot, sparad i sex timmar (en timme om GitHub inte svarade). */

@@ -41,12 +41,15 @@ def send(subject: str, body: str, to: str | None = None) -> bool:
         last_error = "E-post är inte inställd (server, avsändare eller mottagare saknas)."
         log.info("E-post ej konfigurerad, skulle ha skickat: %s", subject)
         return False
-    msg = EmailMessage()
-    msg["Subject"] = f"Sajtvakt: {subject}"
-    msg["From"] = cfg["sender"]
-    msg["To"] = to
-    msg.set_content(body + f"\n\n— Sajtvakt\n{config.PUBLIC_URL}\n")
     try:
+        # Ämnesraden kan innehålla sajtnamn som sajten själv bestämmer – rensa styrtecken,
+        # annars kraschar mejlbygget (och larmet uteblir) på ett namn med radbrytning i.
+        clean = "".join(ch for ch in str(subject) if ch >= " " and ch != "\x7f").strip()
+        msg = EmailMessage()
+        msg["Subject"] = f"Sajtvakt: {clean or 'larm'}"
+        msg["From"] = cfg["sender"]
+        msg["To"] = to
+        msg.set_content(body + f"\n\n— Sajtvakt\n{config.PUBLIC_URL}\n")
         if cfg["tls"] == "ssl":
             server = smtplib.SMTP_SSL(cfg["host"], cfg["port"], context=ssl.create_default_context(), timeout=30)
         else:

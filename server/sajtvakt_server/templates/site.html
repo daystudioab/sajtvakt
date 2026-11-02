@@ -27,7 +27,7 @@
 <div class="job" data-job="{{ j.id }}"><div class="spin"></div><div><div class="t">{{ JOB_NAMES.get(j.kind, j.kind) }}</div><div class="p muted small">{{ j.progress or 'I kö …' }}</div></div></div>
 {% endfor %}
 
-{% if not busy and recent_jobs and recent_jobs[0].status == 'error' and (now - recent_jobs[0].finished) < 86400 %}
+{% if not busy and recent_jobs and recent_jobs[0].status == 'error' and recent_jobs[0].finished and (now - recent_jobs[0].finished) < 86400 %}
 <div class="notice bad"><strong>{{ JOB_NAMES.get(recent_jobs[0].kind, recent_jobs[0].kind) }} misslyckades</strong> {{ recent_jobs[0].finished | ago }}: {{ recent_jobs[0].error }}</div>
 {% endif %}
 
@@ -271,7 +271,7 @@
     {% endif %}
     <div class="card-body small" style="padding-top:{{ '0' if sec_issues else '14px' }}">
       {% if sec_updates %}<div class="muted" style="margin-bottom:6px">Wordfence påpekar också {{ sec_updates }} {{ 'uppdatering' if sec_updates == 1 else 'uppdateringar' }} – dem sköter Sajtvakt.</div>{% endif %}
-      <a href="{{ sec.admin_url }}" target="_blank" rel="noopener">Öppna Wordfence på sajten</a> <span class="muted">· version {{ sec.version or '?' }}</span>
+      <a href="{{ sec_admin }}" target="_blank" rel="noopener">Öppna Wordfence på sajten</a> <span class="muted">· version {{ sec.version or '?' }}</span>
     </div>
     {% endif %}
   </div>

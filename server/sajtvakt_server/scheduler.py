@@ -14,6 +14,7 @@ log = logging.getLogger("sajtvakt.scheduler")
 
 STATUS_EVERY = 6 * 3600
 _stop = threading.Event()
+last_tick = 0.0  # När tick() senast gick klart – /halsa larmar om den blir gammal.
 _monitor_pool = ThreadPoolExecutor(max_workers=6, thread_name_prefix="upptid")
 
 
@@ -98,6 +99,7 @@ def tick() -> None:
                 log.warning("Städning %s: %s", row["url"], e)
         res = store.gc()
         log.info("Lagerstädning: %s", res)
+        db.set_setting("store_usage_at", "0")  # Städningen ändrade lagret – räkna om siffran.
         disk = shutil.disk_usage(config.DATA_DIR)
         if disk.free < 0.1 * disk.total or disk.free < 5 * 1024**3:
             db.event(None, "warning", "Lite diskutrymme kvar på Sajtvakt-servern", f"{jobs.fmt_bytes(disk.free)} ledigt av {jobs.fmt_bytes(disk.total)}.")
@@ -107,11 +109,17 @@ def tick() -> None:
 def loop() -> None:
     log.info("Schemaläggaren startar (backup kl %s, %s)", db.setting("backup_hour"), config.TZ)
     # Jobb som var igång när servern stängdes av blir aldrig klara – markera dem.
+    # Nattkörningar som avbröts får sin dagmarkör nollställd, annars hoppas den sajtens backup
+    # över i natt utan nytt försök (t.ex. efter en omstart eller uppgradering mitt i körningen).
+    for r in db.q("SELECT DISTINCT site_id FROM jobs WHERE status IN ('queued','running') AND kind='nightly' AND site_id IS NOT NULL"):
+        db.run("DELETE FROM settings WHERE key = ?", f"nightly:{r['site_id']}")
     db.run("UPDATE jobs SET status='error', error='Avbrutet (servern startades om)', finished=? WHERE status IN ('queued','running')", int(time.time()))
     db.run("UPDATE backups SET status='error', error='Avbrutet (servern startades om)' WHERE status='running'")
     while not _stop.is_set():
         try:
             tick()
+            global last_tick
+            last_tick = time.time()
         except Exception as e:
             log.exception("Schemaläggarfel: %s", e)
         _stop.wait(30)
@@ -119,6 +127,8 @@ def loop() -> None:
 
 def start() -> None:
     if config.SCHEDULER_ENABLED:
+        global last_tick
+        last_tick = time.time()  # Så att /halsa inte larmar innan första ticken hunnit gå.
         threading.Thread(target=loop, name="schemalaggare", daemon=True).start()
 
 

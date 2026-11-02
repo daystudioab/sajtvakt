@@ -314,7 +314,15 @@ def _shutdown():
 
 @app.get("/halsa")
 def health():
-    return {"ok": True}
+    """För extern övervakning: svarar fel om schemaläggaren slutat ticka."""
+    out: dict = {"ok": True}
+    if config.SCHEDULER_ENABLED:
+        age = int(time.time() - scheduler.last_tick) if scheduler.last_tick else None
+        out["scheduler_tick_age"] = age
+        if age is None or age > 300:
+            out["ok"] = False
+            return JSONResponse(out, status_code=500)
+    return out
 
 
 # ====================================================================== login
@@ -562,7 +570,7 @@ def dashboard(request: Request, sort: str = "status"):
         "down": down,
         "updates": sum(s["updates"] for s in sites),
         "fresh": sum(1 for s in sites if s["row"]["last_backup"] and now - s["row"]["last_backup"] < 26 * 3600),
-        "stored": store.usage(),
+        "stored": jobs.stored_usage(),
     }
     return render(request, "dashboard.html", sites=sites, groups=groups, needs=needs, log=log, night=night,
                   totals=totals, mail_ok=mailer.configured(), backup_hour=backup_hour, sort="namn" if by_name else "status",
@@ -654,7 +662,10 @@ def site_page(request: Request, site_id: int):
     fore_at = shots.taken_at(site_id, "fore")
     show_fore = bool(fore_at and time.time() - fore_at < 14 * 86400)
     sec = (st or {}).get("security")
-    return render(request, "site.html", site=row, st=st, sec=sec, sec_sum=_sec_summary(st, site_id),
+    # Wordfence-länken kommer ur sajtens eget svar – en hackad sajt får inte smyga in javascript: här.
+    sec_admin = jobs.trusted_site_url(row["url"], (sec or {}).get("admin_url")) \
+        or row["url"].rstrip("/") + "/wp-admin/admin.php?page=WordfenceScan"
+    return render(request, "site.html", site=row, st=st, sec=sec, sec_admin=sec_admin, sec_sum=_sec_summary(st, site_id),
                   sec_issues=jobs.real_issues(sec), sec_updates=len(((sec or {}).get("issues") or {}).get("items", [])) - len(jobs.real_issues(sec)),
                   sec_pending=jobs.sec_pending(site_id), sec_mode=db.setting("security_scan") or "weekly", backups=backups, events=events, running=running,
                   recent_jobs=recent_jobs, others=others, skip=skip, pending=pending, notes=notes, skip_names=skip_names,
@@ -951,6 +962,7 @@ def backup_delete(request: Request, backup_id: int, csrf_token: str = Form("")):
         return back(url, "Ett jobb pågår – ta bort backupen när det är klart.", bad=True)
     store.delete_backup(b["path"])
     db.run("DELETE FROM backups WHERE id = ?", backup_id)
+    db.set_setting("store_usage_at", "0")
     if b["status"] == "done":
         kind = templates.env.globals["KIND_NAMES"].get(b["kind"], b["kind"])
         db.event(b["site_id"], "info", "Backup borttagen", f"{_ts(b['created'])} ({kind}, {jobs.fmt_bytes(b['size'])})")
@@ -996,7 +1008,7 @@ def settings_page(request: Request):
     auth(request)
     return render(request, "settings.html",
                   s={k: db.setting(k) for k in ("backup_hour", "retention_days", "alert_email", "auto_update", "security_scan")},
-                  smtp=mailer.smtp(), smtp_in_panel=bool(db.setting("smtp_host")), usage=store.usage(), tz=str(config.TZ))
+                  smtp=mailer.smtp(), smtp_in_panel=bool(db.setting("smtp_host")), usage=jobs.stored_usage(), tz=str(config.TZ))
 
 
 @app.post("/installningar")

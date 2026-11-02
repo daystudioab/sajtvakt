@@ -902,9 +902,15 @@ final class Sajtvakt_Restore {
 
 		$journal = array();
 		$undo_db = null;
+		// Crash safety: if a previous attempt journaled the swap and the tmp tables are gone,
+		// the RENAME already happened (it is atomic). Re-running the swap then would drop the
+		// parked rollback copy – so detect it and continue from after the rename instead.
+		$db_done = ! empty( $job['state']['db_ready'] ) && ! empty( $job['state']['db_swap'] ) && ! self::list_tables( $tmp );
 		try {
 			// a) Database: one atomic RENAME of all tables. The old ones are kept until the very end.
-			if ( ! empty( $job['state']['db_ready'] ) ) {
+			if ( $db_done ) {
+				$undo_db = isset( $job['state']['db_swap_undo'] ) ? (string) $job['state']['db_swap_undo'] : null;
+			} elseif ( ! empty( $job['state']['db_ready'] ) ) {
 				self::drop_tables( $old );
 				$existing = self::list_tables( $dst );
 				$forward  = array();
@@ -922,20 +928,29 @@ final class Sajtvakt_Restore {
 					}
 				}
 				if ( $forward ) {
+					// Journal to disk BEFORE the rename, so a kill right after it can be detected.
+					$job['state']['db_swap']      = true;
+					$job['state']['db_swap_undo'] = 'RENAME TABLE ' . implode( ', ', $back );
+					$job                          = self::save( $job );
 					if ( false === $wpdb->query( 'RENAME TABLE ' . implode( ', ', $forward ) ) ) {
 						throw new Exception( 'Kunde inte byta in den återställda databasen: ' . $wpdb->last_error );
 					}
-					$undo_db = 'RENAME TABLE ' . implode( ', ', $back );
+					$undo_db = $job['state']['db_swap_undo'];
 				}
 			}
 
 			// b) Code folders: swapped whole, so nothing from the old install lingers.
 			foreach ( $swaps as $sub => $live ) {
 				$staged = $extract . '/wp-content/' . $sub;
+				$parked = $trash . '/' . $sub;
 				if ( ! is_dir( $staged ) ) {
+					if ( is_dir( $parked ) ) {
+						// Already swapped in by a previous attempt that was killed – note it for the
+						// undo journal and move on instead of failing on the missing staged folder.
+						$journal[] = array( 'sub' => $sub, 'live' => $live, 'parked' => $parked, 'staged' => $staged );
+					}
 					continue;
 				}
-				$parked = $trash . '/' . $sub;
 				if ( file_exists( $live ) && ! @rename( $live, $parked ) ) { // phpcs:ignore
 					throw new Exception( "Kunde inte flytta undan mappen {$sub} (rättigheter?)." );
 				}

@@ -142,6 +142,7 @@ class Site:
 
     def backup(self, dest_dir: str, *, files: bool = True, database: bool = True,
                budget: int = 20, chunk: int = 8 * 1024 * 1024, base: str = "",
+               max_bytes: int = 50 * 1024**3,
                progress: Callable[[dict], None] | None = None) -> dict:
         """Kör en backup och laddar ner allt till dest_dir. Returnerar manifestet (med "_job").
 
@@ -156,23 +157,32 @@ class Site:
         jid = job["job"]
         try:
             fetched: set[str] = set()
+            downloaded = 0
+            stalled, last_mark = 0, None
             while True:
                 job = self._retry(lambda: self.request("backup_step", {"job": jid, "budget": budget}, timeout=budget + 120), server_errors=True)
                 if progress:
                     progress(job)
                 if job["status"] == "error":
                     raise SajtvaktError("backup_failed", job.get("error") or "okänt fel")
+                # Händer ingenting mellan stegen (sajt som inte kan spara sitt jobbläge, t.ex. full
+                # disk där) ska servern inte snurra för evigt – ge upp efter ~40 identiska steg.
+                mark = (job.get("phase"), json.dumps(job.get("progress"), sort_keys=True), len(job.get("outputs", [])))
+                stalled = stalled + 1 if mark == last_mark else 0
+                last_mark = mark
+                if stalled > 40:
+                    raise SajtvaktError("stalled", "Backupen kommer ingenstans – sajten gör om samma steg utan framsteg (full disk på webbhotellet?)")
                 # Hämta färdiga delar direkt och låt sajten radera dem (sparar diskutrymme där).
                 for out in job["outputs"]:
                     self._safe_path(dest_dir, out["name"])
                     if out["name"] not in fetched and out["name"] != "manifest.json":
-                        self._download(jid, out, dest_dir, chunk)
+                        downloaded += self._download(jid, out, dest_dir, chunk, max_bytes - downloaded)
                         fetched.add(out["name"])
                         self.request("backup_discard", {"job": jid, "file": out["name"]})
                 if job["status"] == "done":
                     break
             man = next(o for o in job["outputs"] if o["name"] == "manifest.json")
-            self._download(jid, man, dest_dir, chunk)
+            self._download(jid, man, dest_dir, chunk, max_bytes)
             with open(os.path.join(dest_dir, "manifest.json"), encoding="utf-8") as f:
                 manifest = json.load(f)
             for out in manifest.get("outputs", []):
@@ -201,21 +211,28 @@ class Site:
             raise SajtvaktError("bad_name", f"Otillåten sökväg: {name!r}")
         return path
 
-    def _download(self, jid: str, out: dict, dest_dir: str, chunk: int):
+    def _download(self, jid: str, out: dict, dest_dir: str, chunk: int, allowance: int = 50 * 1024**3) -> int:
+        """Hämtar en fil. Storleken uppges av sajten, så den hålls inom ett tak –
+        en hackad sajt ska inte kunna fylla serverns disk med en påhittad jättefil."""
         path = self._safe_path(dest_dir, out["name"])
+        size = int(out["size"])
+        if size < 0 or size > allowance:
+            raise SajtvaktError("too_big", f"{out['name']} uppges vara {size} byte – över gränsen för en backup")
         h = hashlib.sha256()
         with open(path, "wb") as f:
             offset = 0
-            while offset < out["size"]:
+            while offset < size:
                 data, _ = self._retry(lambda: self.request(
-                    "backup_download", {"job": jid, "file": out["name"], "offset": offset, "length": chunk}, binary=True))
+                    "backup_download", {"job": jid, "file": out["name"], "offset": offset, "length": min(chunk, size - offset)}, binary=True))
                 if not data:
                     raise SajtvaktError("download_failed", f"Tomt svar för {out['name']} vid {offset}")
+                data = data[: size - offset]  # Aldrig mer än den uppgivna storleken till disk.
                 f.write(data)
                 h.update(data)
                 offset += len(data)
         if h.hexdigest() != out["sha256"]:
             raise SajtvaktError("checksum", f"Kontrollsumman stämmer inte för {out['name']}")
+        return size
 
     def push_backup(self, backup_dir: str, *, mode: str = "restore", budget: int = 20,
                     progress: Callable[[dict], None] | None = None) -> dict:
@@ -232,13 +249,18 @@ class Site:
                     continue
                 path = os.path.join(backup_dir, out["name"])
                 with open(path, "rb") as f:
-                    offset, failures = 0, 0
+                    offset, failures, stalls = 0, 0, 0
                     while offset < out["size"]:
                         f.seek(offset)
                         data = f.read(chunk)
                         try:
                             r = self.request("restore_upload", {"job": jid, "file": out["name"], "offset": offset}, raw=data)
-                            offset, failures = r["received"], 0
+                            got = int(r["received"])
+                            # Rör sig inte "received" framåt är något fel på sajten – ge inte servern en evighetsloop.
+                            stalls = stalls + 1 if got <= offset else 0
+                            if stalls > 20:
+                                raise SajtvaktError("stalled", f"Uppladdningen av {out['name']} kommer ingenstans (sajten tar inte emot)")
+                            offset, failures = got, 0
                         except SajtvaktError as e:
                             if e.http == 413 and chunk > 256 * 1024:
                                 chunk //= 2  # Webbservern tar inte emot så stora bitar – halvera.
@@ -255,6 +277,7 @@ class Site:
                             continue
                         if progress:
                             progress({"phase": "upload", "file": out["name"], "received": offset, "size": out["size"]})
+            stalled, last_mark = 0, None
             while True:
                 job = self._retry(lambda: self.request("restore_step", {"job": jid, "budget": budget}, timeout=budget + 400), server_errors=True)
                 if progress:
@@ -263,6 +286,11 @@ class Site:
                     raise SajtvaktError("restore_failed", job.get("error") or "okänt fel")
                 if job["status"] == "done":
                     return job
+                mark = json.dumps({k: v for k, v in job.items() if k != "ok"}, sort_keys=True, default=str)
+                stalled = stalled + 1 if mark == last_mark else 0
+                last_mark = mark
+                if stalled > 60:
+                    raise SajtvaktError("stalled", "Återställningen kommer ingenstans – sajten gör om samma steg utan framsteg")
         except Exception:
             # Be sajten städa. Pluginet vägrar själv om något redan är inbytt eller ett steg fortfarande kör.
             try:

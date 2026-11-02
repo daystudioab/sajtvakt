@@ -41,6 +41,7 @@ SECURE_COOKIES = _env("SAJTVAKT_SECURE_COOKIES", "1") == "1"
 
 MONITOR_INTERVAL = int(_env("MONITOR_INTERVAL", "300") or 300)   # sekunder mellan upptidskoller
 MAX_PARALLEL_JOBS = int(_env("MAX_PARALLEL_JOBS", "3") or 3)
+MAX_BACKUP_GB = int(_env("MAX_BACKUP_GB", "50") or 50)           # tak per backup – skydd mot att en hackad sajt fyller disken
 SCHEDULER_ENABLED = _env("SAJTVAKT_SCHEDULER", "1") == "1"
 
 for d in (DATA_DIR, STORE_DIR, TMP_DIR):
