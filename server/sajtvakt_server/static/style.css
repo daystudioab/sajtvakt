@@ -540,3 +540,11 @@ td.cb input { width: 17px; height: 17px; accent-color: var(--bad-dot); cursor: p
 @media (max-width: 760px) {
   .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 10px; }
 }
+
+/* ---- statusfärgen som 5 px kant till vänster på varje sajtrad ---- */
+.site-row { box-shadow: inset 5px 0 0 var(--row-st, transparent); }
+.site-row.st-ok { --row-st: var(--ok-dot); }
+.site-row.st-warn { --row-st: var(--warn-dot); }
+.site-row.st-bad { --row-st: var(--bad-dot); }
+.site-row.st-maint, .site-row.st-info { --row-st: var(--maint-dot); }
+.site-row.st-none { --row-st: rgba(255, 255, 255, .12); }
