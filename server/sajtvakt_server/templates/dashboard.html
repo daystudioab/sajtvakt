@@ -71,7 +71,7 @@
     <section aria-labelledby="need-h" style="display:flex;flex-direction:column;gap:12px">
       <h2 id="need-h">{{ icon("warn") }}Behöver dig{% if needs %} · {{ needs | length }}{% endif %}</h2>
       {% if needs %}
-      <div class="needs {{ 'bad' if needs[0].kind == 'bad' }}">
+      <div class="needs {{ 'bad' if needs | selectattr('kind', 'equalto', 'bad') | list else 'warn' }}">
       {% for n in needs[:5] %}
         <div class="need {{ n.kind }}">
           <span class="sq"></span>
