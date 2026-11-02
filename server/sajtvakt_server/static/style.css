@@ -1,11 +1,8 @@
-/* Sajtvakt – mjuk grafit. Typsnitt lokalt (OFL): Sora för text, Space Grotesk i versaler för rubriker och menyer. */
+/* Sajtvakt – mjuk grafit. Typsnitt lokalt (OFL): Sora rakt igenom, i versaler för rubriker och menyer. */
 @font-face { font-family: "Sora"; src: url(fonts/sora-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Sora"; src: url(fonts/sora-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Sora"; src: url(fonts/sora-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Sora"; src: url(fonts/sora-700.woff2) format("woff2"); font-weight: 700 800; font-display: swap; }
-@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-700.woff2) format("woff2"); font-weight: 700 800; font-display: swap; }
 
 :root {
   color-scheme: dark;
@@ -40,7 +37,7 @@
   --link: #9cc8ff;
   --r: 24px;
   --font: "Sora", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --head: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --head: "Sora", ui-sans-serif, system-ui, sans-serif;
   --mono: "Sora", ui-sans-serif, system-ui, sans-serif;
   --tile: linear-gradient(180deg, #25282e 0%, #1d2025 100%);
   --tile-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .04);
@@ -54,10 +51,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.55 va
 a { color: var(--link); text-decoration: none; }
 a:hover { color: #c8e0ff; }
 h1, h2, h3 { line-height: 1.2; margin: 0; }
-/* Rubriker och menyer: Space Grotesk i versaler. */
+/* Rubriker och menyer: versaler. */
 h1, h2, h3, .side nav a, .linkbtn, .brand, .group > summary .gname, .card-head h2 { font-family: var(--head); text-transform: uppercase; }
-h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.02em; }
-h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.08em; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: 0.03em; }
+h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.08em; }
 
 code, .mono { font-family: var(--mono); font-size: 13px; font-weight: 400; }
 strong, b { font-weight: 600; }
@@ -76,11 +73,11 @@ strong, b { font-weight: 600; }
   box-shadow: 0 24px 50px -30px rgba(0, 0, 0, .9);
   padding: 22px 14px; display: flex; flex-direction: column; gap: 6px;
 }
-.brand { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 700; font-size: 18px; letter-spacing: 0.08em; padding: 0 10px; margin-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 600; font-size: 17px; letter-spacing: 0.08em; padding: 0 10px; margin-bottom: 22px; }
 .brand:hover { color: var(--ink); }
 .brand svg { width: 36px; height: 36px; color: var(--accent); flex: none; }
 .side nav { display: flex; flex-direction: column; gap: 4px; }
-.side nav a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 15px; color: var(--muted); font-size: 13.5px; font-weight: 600; letter-spacing: 0.08em; }
+.side nav a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 15px; color: var(--muted); font-size: 12.5px; font-weight: 500; letter-spacing: 0.08em; }
 .side nav a:hover { color: var(--ink); }
 .side nav a.on { color: #fff; background: linear-gradient(180deg, #2c3037, #22252b); box-shadow: 0 8px 18px -8px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .06); }
 .side nav a.on svg { color: var(--accent); }
@@ -92,7 +89,7 @@ strong, b { font-weight: 600; }
 .side .meta .v { font-size: 14px; font-weight: 500; color: var(--ink); }
 .side .meta .v.warn { color: var(--warn); }
 .side .foot form { margin: 0; }
-.linkbtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 14px; background: none; border: 0; border-radius: 15px; font: inherit; font-family: var(--head); text-transform: uppercase; font-size: 13.5px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); cursor: pointer; }
+.linkbtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 14px; background: none; border: 0; border-radius: 15px; font: inherit; font-family: var(--head); text-transform: uppercase; font-size: 12.5px; font-weight: 500; letter-spacing: 0.08em; color: var(--muted); cursor: pointer; }
 .linkbtn:hover { color: var(--ink); }
 .linkbtn svg { width: 19px; height: 19px; }
 
@@ -165,7 +162,7 @@ h2 .ic { width: 18px; height: 18px; flex: none; color: var(--accent); }
 .group > summary:hover { background: rgba(255, 255, 255, .03); }
 .group > summary .chev { width: 16px; height: 16px; color: var(--muted); transition: transform .15s; flex: none; }
 .group[open] > summary .chev { transform: rotate(90deg); }
-.group > summary .gname { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; }
+.group > summary .gname { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; }
 .group > summary .gcount { font-size: 13px; color: var(--muted); }
 .group > summary .gdots { display: flex; gap: 4px; margin-left: 4px; }
 .group > summary .gdots i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok-bar); }
