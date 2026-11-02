@@ -461,3 +461,8 @@ form.search input[type=search] { background: rgba(255, 255, 255, .065); border-c
   from { border-color: rgba(var(--glow), .2); box-shadow: 0 0 14px -4px rgba(var(--glow), .1), 0 24px 50px -28px rgba(0, 0, 0, .8); }
   to   { border-color: rgba(var(--glow), .5); box-shadow: 0 0 30px -6px rgba(var(--glow), .3), 0 24px 50px -28px rgba(0, 0, 0, .8); }
 }
+
+/* Öppen alternativruta ska ligga över rutorna nedanför (glaset skapar egna lager). */
+.card:has(details[open]), .group:has(details[open]) { position: relative; z-index: 20; }
+details.use[open] { z-index: 21; }
+.push-box { background: rgba(24, 27, 29, .97); border-color: rgba(255, 255, 255, .14); box-shadow: 0 24px 60px -16px rgba(0, 0, 0, .9); }

@@ -93,7 +93,7 @@
           <td class="r">
             {% if b.status == 'done' %}
             <details class="use">
-              <summary class="btn small">Använd …</summary>
+              <summary class="btn small">Alternativ</summary>
               <form class="push-box" method="post" action="/backup/{{ b.id }}/push">
                 <input type="hidden" name="csrf_token" value="{{ csrf }}">
                 <select name="target">
