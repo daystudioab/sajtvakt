@@ -139,6 +139,9 @@ _ICON_PATHS = {
     "db-ok": '<path d="m16 19 2 2 4-4"/><path d="M21 13.127V5"/><path d="M3 12A9 3 0 0 0 21 12"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
     "db-bad": '<path d="m17 17 5 5"/><path d="M19.323 13.744A9 3 0 0 0 21 12"/><path d="M21 13.127V5"/><path d="m22 17-5 5"/><path d="M3 12A9 3 0 0 0 13.563 14.954"/><path d="M3 5V19A9 3 0 0 0 13 21.981"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
     "db-warn": '<path d="M19 15v3"/><path d="M19 21.5h.01"/><path d="M21 12.5V5"/><path d="M3 12A9 3 0 0 0 15 14.86"/><path d="M3 5V19A9 3 0 0 0 15 21.86"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
+    # Crocoblock-avveckling (Lucide package-check / package).
+    "pkg-ok": '<path d="M12 22V12"/><path d="m16 17 2 2 4-4"/><path d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/>',
+    "pkg": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
     "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
     "warn": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     "down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
@@ -428,6 +431,36 @@ def _sec_summary(st: dict | None, site_id: int) -> dict:
     return out("ok", "Säker", f"Wordfence hittade inga problem vid senaste skanningen {when:%Y-%m-%d %H:%M}", "shield-ok")
 
 
+def _cbx_summary(st: dict | None) -> dict:
+    """Har sajten avvecklat Crocoblock (Jet-tilläggen) och CSS Hero? Läses ur tilläggslistan,
+    med samma igenkänning som avvecklingstillägget självt använder."""
+    def out(kind, label, title, icon):
+        return {"kind": kind, "label": label, "title": title, "icon": icon}
+    if not st or "plugins" not in st:
+        return out("none", "–", "Ingen status hämtad än", "pkg")
+    left, has_exit = [], False
+    for p in st["plugins"]:
+        folder = (p.get("file") or "").split("/")[0].lower()
+        name = p.get("name") or folder
+        if folder == "crocoblock-exit":
+            has_exit = True
+            continue
+        jet = folder.startswith(("jet-", "jetengine")) or "crocoblock" in folder \
+            or (name.startswith("Jet") and not name.lower().startswith("jetpack"))
+        hero = bool(re.match(r"css-?hero", folder)) or name == "CSS Hero"
+        if jet or hero:
+            left.append(p)
+    active = [p for p in left if p.get("active")]
+    if active:
+        names = ", ".join(p["name"] for p in active[:4]) + (" …" if len(active) > 4 else "")
+        return out("warn", f"{len(active)} {'aktiv' if len(active) == 1 else 'aktiva'}", f"Inte avvecklad – aktiva: {names}", "pkg")
+    if left:
+        return out("ok", "Klar", f"Avvecklad – {len(left)} {'inaktivt tillägg ligger' if len(left) == 1 else 'inaktiva tillägg ligger'} kvar och kan avinstalleras", "pkg-ok")
+    if has_exit:
+        return out("ok", "Klar", "Avvecklad – inga Crocoblock- eller CSS Hero-tillägg kvar", "pkg-ok")
+    return out("none", "–", "Inga Crocoblock- eller CSS Hero-tillägg på sajten", "pkg")
+
+
 def _backup_summary(row, running) -> dict:
     """Backupläget som ikon + kort etikett för listan: kind = ok | warn | bad | busy | none."""
     def out(kind, label, title, icon):
@@ -469,7 +502,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     locked = len(json.loads(row["skip_plugins"] or "[]"))
     out = {"row": row, "st": st, "updates": n_updates, "job": running, "locked": locked,
            "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"]), "sec": _sec_summary(st, row["id"]),
-           "bk": _backup_summary(row, running)}
+           "bk": _backup_summary(row, running), "cbx": _cbx_summary(st)}
     if today is None:
         return out
     nights = _nights(row, backup_days or set(), rolled_days or set(), today, backup_hour, n=7)
@@ -497,7 +530,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         # Väntande uppdateringar: gul cirkel, men räknas inte som att sajten behöver dig.
         tone, label, kind = "ok", f"{n_updates} uppd.", "warn"
     elif st:
-        tone, label, kind = "ok", "Aktuell", "ok"
+        tone, label, kind = "ok", "Uppdaterad", "ok"
     else:
         tone, label, kind = "ok", "Väntar på status", ""
     out.update(tone=tone, label=label, kind=kind, severity=SEVERITY[tone])

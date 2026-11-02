@@ -533,3 +533,10 @@ td.cb input { width: 17px; height: 17px; accent-color: var(--bad-dot); cursor: p
 @media (max-width: 760px) {
   .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 12px; }
 }
+
+/* ---- Crocoblock-avveckling som femte kolumn ---- */
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 118px 116px 104px 84px; gap: 14px; }
+.sec.cbx.ok { color: var(--soft); }
+@media (max-width: 760px) {
+  .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 10px; }
+}
