@@ -135,6 +135,10 @@ _ICON_PATHS = {
     "check": '<path d="M20 6 9 17l-5-5"/>',
     "shield": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
     "shield-ok": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    # Backupläge i sajtlistan (Lucide database-check / database-x; varningsvarianten i samma stil).
+    "db-ok": '<path d="m16 19 2 2 4-4"/><path d="M21 13.127V5"/><path d="M3 12A9 3 0 0 0 21 12"/><path d="M3 5V19A9 3 0 0 0 13.318 21.968"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
+    "db-bad": '<path d="m17 17 5 5"/><path d="M19.323 13.744A9 3 0 0 0 21 12"/><path d="M21 13.127V5"/><path d="m22 17-5 5"/><path d="M3 12A9 3 0 0 0 13.563 14.954"/><path d="M3 5V19A9 3 0 0 0 13 21.981"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
+    "db-warn": '<path d="M19 15v3"/><path d="M19 21.5h.01"/><path d="M21 12.5V5"/><path d="M3 12A9 3 0 0 0 15 14.86"/><path d="M3 5V19A9 3 0 0 0 15 21.86"/><ellipse cx="12" cy="5" rx="9" ry="3"/>',
     "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
     "warn": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     "down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
@@ -424,6 +428,37 @@ def _sec_summary(st: dict | None, site_id: int) -> dict:
     return out("ok", "Säker", f"Wordfence hittade inga problem vid senaste skanningen {when:%Y-%m-%d %H:%M}", "shield-ok")
 
 
+def _backup_summary(row, running) -> dict:
+    """Backupläget som ikon + kort etikett för listan: kind = ok | warn | bad | busy | none."""
+    def out(kind, label, title, icon):
+        return {"kind": kind, "label": label, "title": title, "icon": icon}
+    now = int(time.time())
+    last = row["last_backup"]
+    if running and running["kind"] in ("backup", "nightly"):
+        return out("busy", "Pågår", "En backup tas just nu", "backup")
+    latest = db.one("SELECT status, created, error FROM backups WHERE site_id=? ORDER BY id DESC LIMIT 1", row["id"])
+    # Senaste försöket misslyckades (och ingen lyckad backup har kommit efter) – en avbruten körning vid omstart räknas inte.
+    if latest and latest["status"] == "error" and latest["created"] > (last or 0) \
+            and (latest["error"] or "") != "Avbrutet (servern startades om)":
+        when = datetime.fromtimestamp(latest["created"], config.TZ)
+        return out("bad", "Misslyckad", f"Backupen {when:%Y-%m-%d %H:%M} misslyckades: {latest['error'] or 'okänt fel'}", "db-bad")
+    if not last:
+        if now - row["added"] > 3600:
+            return out("warn", "Ingen", "Sajten har ingen backup än", "db-warn")
+        return out("none", "–", "Första backupen tas i natt", "backup")
+    lb = datetime.fromtimestamp(last, config.TZ)
+    age = now - last
+    if age < 86400:
+        label = f"{lb:%H:%M}"
+    else:
+        days = age // 86400
+        label = "i går" if days == 1 else f"{days} dagar"
+    title = f"Senaste backup {lb:%Y-%m-%d %H:%M}"
+    if age > 36 * 3600 and now - row["added"] > 36 * 3600:
+        return out("warn", label, title + " – för gammal", "db-warn")
+    return out("ok", label, title, "db-ok")
+
+
 def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_hour=2) -> dict:
     st = jobs.status_of(row)
     n_updates = 0
@@ -433,7 +468,8 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     running = db.one("SELECT * FROM jobs WHERE site_id=? AND status IN ('queued','running') ORDER BY id DESC LIMIT 1", row["id"])
     locked = len(json.loads(row["skip_plugins"] or "[]"))
     out = {"row": row, "st": st, "updates": n_updates, "job": running, "locked": locked,
-           "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"]), "sec": _sec_summary(st, row["id"])}
+           "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"]), "sec": _sec_summary(st, row["id"]),
+           "bk": _backup_summary(row, running)}
     if today is None:
         return out
     nights = _nights(row, backup_days or set(), rolled_days or set(), today, backup_hour, n=7)
@@ -441,6 +477,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     ok = sum(1 for x in nights if x["kind"] in ("ok", "roll"))
     counted = sum(1 for x in nights if x["kind"] not in ("none", "wait"))
     out["nights_label"] = f"Backup {ok} av {counted} nätter"
+    out["bk"]["title"] += f" · {ok} av {counted} nätter senaste veckan"
     now = int(time.time())
     stale = bool(row["last_backup"]) and now - row["last_backup"] > 36 * 3600 and now - row["added"] > 36 * 3600
     never = not row["last_backup"]

@@ -526,3 +526,10 @@ td.cb input { width: 17px; height: 17px; accent-color: var(--bad-dot); cursor: p
 .btn.danger-outline { color: var(--bad); border-color: rgba(252, 40, 82, .45); }
 .btn.danger-outline:hover { background: rgba(252, 40, 82, .1); border-color: var(--bad-dot); color: var(--bad); }
 .btn.danger-outline[disabled] { color: var(--dim); border-color: rgba(255, 255, 255, .08); }
+
+/* ---- backup i sajtlistan: ikon i statusfärg (bock, varning eller kryss) + tid ---- */
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 138px 138px 104px; gap: 16px; }
+.sec.bk.ok { color: var(--soft); }
+@media (max-width: 760px) {
+  .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 12px; }
+}
