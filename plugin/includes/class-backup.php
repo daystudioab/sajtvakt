@@ -8,7 +8,14 @@ defined( 'ABSPATH' ) || exit;
  * Output per job:
  *   database.sql.gz   – full dump of the site's tables (prefix-filtered)
  *   files-001.zip …   – wp-content plus wp-config.php/.htaccess, split in parts
+ *   index.json.gz     – (incremental only) every file on the site: [path, size, mtime]
  *   manifest.json     – what the backup contains, with sizes and SHA-256
+ *
+ * Incremental: the server passes `base` = the job id of the last backup it stored.
+ * If that matches our saved baseline, only new or changed files (size or mtime)
+ * are zipped; the server takes the rest from the backup it already has. The
+ * baseline is only replaced when the server confirms it stored the new backup
+ * (finish with keep=true), so a failed transfer never leaves us out of step.
  */
 final class Sajtvakt_Backup {
 
@@ -87,6 +94,7 @@ final class Sajtvakt_Backup {
 		$include_db    = ! isset( $params['database'] ) || (bool) $params['database'];
 		$include_files = ! isset( $params['files'] ) || (bool) $params['files'];
 		$max_mb        = isset( $params['max_file_mb'] ) ? max( 1, (int) $params['max_file_mb'] ) : 512;
+		$base          = isset( $params['base'] ) && Sajtvakt_Core::valid_id( (string) $params['base'] ) ? (string) $params['base'] : '';
 
 		if ( $include_files && ! class_exists( 'ZipArchive' ) ) {
 			Sajtvakt_Core::send_error( 'no_zip', 'PHP-tillägget ZipArchive saknas på webbhotellet, så filer kan inte säkerhetskopieras.', 500 );
@@ -135,6 +143,7 @@ final class Sajtvakt_Backup {
 				'database'    => $include_db,
 				'files'       => $include_files,
 				'max_file_mb' => $max_mb,
+				'base'        => $base,
 			),
 			'db'      => array(
 				'tables'  => $tables,
@@ -146,7 +155,7 @@ final class Sajtvakt_Backup {
 				'started' => false,
 				'gz_size' => 0,
 			),
-			'files'   => array( 'total' => 0, 'index' => 0, 'part' => 0, 'bytes' => 0, 'skipped' => array() ),
+			'files'   => array( 'total' => 0, 'index' => 0, 'part' => 0, 'bytes' => 0, 'skipped' => array(), 'all' => 0, 'incremental' => false ),
 			'outputs' => array(),
 			'error'   => null,
 		);
@@ -343,11 +352,38 @@ final class Sajtvakt_Backup {
 		return self::job_dir( $id ) . '/filelist.php';
 	}
 
+	private static function baseline_file() {
+		return Sajtvakt_Core::data_dir( 'baseline.php' );
+	}
+
+	private static function pending_file( $id ) {
+		return self::job_dir( $id ) . '/baseline-pending.php';
+	}
+
 	private static function step_scan( array $job ) {
 		$max   = (int) $job['options']['max_file_mb'] * 1024 * 1024;
 		$out   = fopen( self::list_file( $job['id'] ), 'wb' );
 		$count = 0;
 		$skip  = array();
+		$all   = array(); // rel => array( size, mtime ) – the new baseline.
+
+		// Incremental only when our saved baseline is exactly the backup the server has.
+		$known = null;
+		$base  = isset( $job['options']['base'] ) ? (string) $job['options']['base'] : '';
+		if ( '' !== $base ) {
+			$bl = Sajtvakt_Core::read_json( self::baseline_file() );
+			if ( is_array( $bl ) && isset( $bl['job'], $bl['files'] ) && $bl['job'] === $base && is_array( $bl['files'] ) ) {
+				$known = $bl['files'];
+			}
+		}
+		$add = function ( $rel, $abs, $size, $mtime ) use ( $out, &$count, &$all, $known ) {
+			$all[ $rel ] = array( (int) $size, (int) $mtime );
+			if ( null !== $known && isset( $known[ $rel ] ) && (int) $known[ $rel ][0] === (int) $size && (int) $known[ $rel ][1] === (int) $mtime ) {
+				return; // Unchanged since the last backup – the server already has it.
+			}
+			fwrite( $out, $rel . "\t" . $abs . "\t" . $size . "\n" );
+			$count++;
+		};
 
 		fwrite( $out, Sajtvakt_Core::GUARD );
 
@@ -355,8 +391,7 @@ final class Sajtvakt_Backup {
 		$config = file_exists( ABSPATH . 'wp-config.php' ) ? ABSPATH . 'wp-config.php' : dirname( ABSPATH ) . '/wp-config.php';
 		foreach ( array( $config, ABSPATH . '.htaccess', ABSPATH . '.user.ini', ABSPATH . 'robots.txt' ) as $abs ) {
 			if ( is_file( $abs ) && is_readable( $abs ) ) {
-				fwrite( $out, 'root/' . basename( $abs ) . "\t" . $abs . "\t" . filesize( $abs ) . "\n" );
-				$count++;
+				$add( 'root/' . basename( $abs ), $abs, filesize( $abs ), filemtime( $abs ) );
 			}
 		}
 
@@ -396,11 +431,28 @@ final class Sajtvakt_Backup {
 				$skip[] = array( 'file' => $rel, 'reason' => 'ogiltigt filnamn' );
 				continue;
 			}
-			fwrite( $out, $rel . "\t" . $abs . "\t" . $size . "\n" );
-			$count++;
+			$add( $rel, $abs, $size, $file->getMTime() );
 		}
 		fclose( $out );
 
+		// The full list goes to the server (so it knows what to take from the last backup)
+		// and is kept here as the baseline-to-be until the server confirms.
+		Sajtvakt_Core::write_json( self::pending_file( $job['id'] ), array( 'job' => $job['id'], 'files' => $all ) );
+		if ( null !== $known ) {
+			$rows = array();
+			foreach ( $all as $rel => $v ) {
+				$rows[] = array( $rel, $v[0], $v[1] );
+			}
+			$gz = gzencode( json_encode( $rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), 6 );
+			if ( false === $gz || false === file_put_contents( self::job_dir( $job['id'] ) . '/index.json.gz', $gz ) ) {
+				throw new Exception( 'Kunde inte skriva fillistan.' );
+			}
+			unset( $rows, $gz );
+			$job['outputs'][] = self::describe_output( $job['id'], 'index.json.gz' );
+		}
+
+		$job['files']['incremental'] = null !== $known;
+		$job['files']['all']         = count( $all );
 		$job['files']['total']   = $count;
 		$job['files']['skipped'] = array_slice( $skip, 0, 200 );
 		$job['phase']            = 'files';
@@ -484,7 +536,11 @@ final class Sajtvakt_Backup {
 			'php'       => PHP_VERSION,
 			'tables'    => count( $job['db']['tables'] ),
 			'rows'      => $job['db']['rows'],
-			'files'     => $job['files']['total'],
+			'files'     => ! empty( $job['files']['all'] ) ? $job['files']['all'] : $job['files']['total'],
+			'changed'   => $job['files']['total'],
+			'incremental' => ! empty( $job['files']['incremental'] ),
+			'base'      => ! empty( $job['files']['incremental'] ) ? $job['options']['base'] : null,
+			'job'       => $job['id'],
 			'skipped'   => $job['files']['skipped'],
 			'outputs'   => $job['outputs'],
 		);
@@ -575,8 +631,13 @@ final class Sajtvakt_Backup {
 		return array( 'ok' => true );
 	}
 
-	public static function finish( $id ) {
+	public static function finish( $id, $keep = false ) {
 		if ( Sajtvakt_Core::valid_id( (string) $id ) ) {
+			// The server stored this backup – it becomes the baseline for the next incremental one.
+			$pending = self::pending_file( $id );
+			if ( $keep && is_file( $pending ) ) {
+				@rename( $pending, self::baseline_file() ); // phpcs:ignore
+			}
 			Sajtvakt_Core::rrmdir( self::job_dir( $id ) );
 			@unlink( self::job_file( $id ) ); // phpcs:ignore
 			@unlink( self::job_file( $id ) . '.lock' ); // phpcs:ignore

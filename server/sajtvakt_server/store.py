@@ -55,8 +55,23 @@ def backup_path(site_id: int, backup_id: int) -> Path:
 
 # ------------------------------------------------------------------ ingest
 
-def ingest(download_dir: Path, dest: Path) -> dict:
-    """Flytta en nedladdad backup (zip-delar) in i lagret. Returnerar statistik."""
+class BaseMismatch(Exception):
+    """En stegvis backup pekar på filer som den förra backupen inte har – kör en hel i stället."""
+
+
+def ingest(download_dir: Path, dest: Path, base_dest: Path | None = None) -> dict:
+    """Flytta en nedladdad backup (zip-delar) in i lagret. Returnerar statistik.
+
+    Stegvis backup (manifestet säger incremental): sajten skickade bara nya och ändrade
+    filer plus en lista över alla filer (index.json.gz). Resten tas från base_dest – den
+    förra backupen – så att varje backup i lagret ändå är komplett."""
+    manifest = json.loads((download_dir / "manifest.json").read_text(encoding="utf-8"))
+    incremental = bool(manifest.get("incremental"))
+    base_map: dict[str, list] = {}
+    if incremental:
+        if base_dest is None or not (base_dest / "files.json.gz").exists():
+            raise BaseMismatch("Den förra backupen finns inte i lagret.")
+        base_map = {e[0]: e for e in file_list(base_dest)}
     dest.mkdir(parents=True, exist_ok=True)
     tmp_dir = BLOBS / "tmp"
     tmp_dir.mkdir(exist_ok=True)
@@ -93,6 +108,29 @@ def ingest(download_dir: Path, dest: Path) -> dict:
                 raw_bytes += info.file_size
         part.unlink()
 
+    fetched = raw_bytes
+    changed = len(entries)
+    if incremental:
+        with gzip.open(download_dir / "index.json.gz", "rt", encoding="utf-8") as f:
+            index = json.load(f)
+        got = {e[0]: e for e in entries}
+        full: list[list] = []
+        for rel, size, _mtime in index:
+            e = got.get(rel)
+            if e is None:
+                e = base_map.get(rel)
+                if e is None or int(e[2]) != int(size):
+                    shutil.rmtree(dest, ignore_errors=True)
+                    raise BaseMismatch(f"{rel} saknas i den förra backupen.")
+                bp = blob_path(e[1])
+                if bp is None:
+                    shutil.rmtree(dest, ignore_errors=True)
+                    raise BaseMismatch(f"Innehållet i {rel} saknas i lagret.")
+                os.utime(bp)  # Markera som använd, så städningen inte tar den.
+            full.append(e)
+        entries = full
+        raw_bytes = sum(int(e[2]) for e in entries)
+
     db = download_dir / "database.sql.gz"
     db_size = 0
     if db.exists():
@@ -102,7 +140,8 @@ def ingest(download_dir: Path, dest: Path) -> dict:
     with gzip.open(dest / "files.json.gz", "wt", encoding="utf-8") as f:
         json.dump(entries, f)
 
-    return {"files": len(entries), "size": raw_bytes + db_size, "new_bytes": new_bytes + db_size}
+    return {"files": len(entries), "size": raw_bytes + db_size, "new_bytes": new_bytes + db_size,
+            "incremental": incremental, "changed": changed, "fetched": fetched + db_size}
 
 
 def file_list(dest: Path) -> list[list]:

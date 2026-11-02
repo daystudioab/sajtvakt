@@ -1,11 +1,11 @@
 {
-  "version": "0.4.0",
-  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.4.0.zip",
-  "sha256": "cf348b3b7516eb68d0f70ec76fe04e437d43d2d9bee88cc8b813d8af1bd8687f",
+  "version": "0.5.0",
+  "package": "https://raw.githubusercontent.com/daystudioab/sajtvakt/main/dist/sajtvakt-0.5.0.zip",
+  "sha256": "c863d0951912c075d39b86377a9393ae2bfc1634910d6dc27cd198a8cde726b1",
   "requires": "6.0",
   "requires_php": "7.4",
   "date": "2026-11-02",
   "changes": [
-    "Säkerhet: läser av Wordfence (senaste skanning, problem, brandvägg) och kan starta en skanning från Sajtvakt-panelen"
+    "Stegvis backup: bara nya och ändrade filer skickas till Sajtvakt-servern, resten tas från förra backupen"
   ]
 }

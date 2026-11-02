@@ -210,6 +210,23 @@ def status_of(row) -> dict | None:
 
 # ====================================================================== backup
 
+FULL_EVERY_DAYS = 30  # En hel backup då och då, även när stegvisa fungerar – som extra säkerhet.
+
+
+def _backup_base(site_id: int) -> tuple[str, Path | None]:
+    """Grunden för en stegvis backup: senaste sparade backup med sajtens jobb-id.
+    Tom sträng = ta en hel backup (ingen grund, eller dags för månadens hela)."""
+    last = db.one("SELECT * FROM backups WHERE site_id=? AND status='done' AND pjob IS NOT NULL AND path IS NOT NULL "
+                  "ORDER BY created DESC LIMIT 1", site_id)
+    if not last or not Path(last["path"]).exists():
+        return "", None
+    full = db.one("SELECT created FROM backups WHERE site_id=? AND status='done' AND pjob IS NOT NULL AND incremental=0 "
+                  "ORDER BY created DESC LIMIT 1", site_id)
+    if not full or time.time() - full["created"] > FULL_EVERY_DAYS * 86400:
+        return "", None
+    return last["pjob"], Path(last["path"])
+
+
 def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, note: str = "") -> int:
     row = db.site(site_id)
     backup_id = db.run("INSERT INTO backups(site_id, created, kind, status, note) VALUES(?,?,?,?,?)",
@@ -225,18 +242,38 @@ def do_backup(site_id: int, kind: str = "manual", job_id: int | None = None, not
             elif j.get("phase") in ("scan", "files"):
                 p = j["progress"]
                 progress(job_id, f"Backup: filer ({p['files_done']}/{p['files_total']})")
-        progress(job_id, "Backup: startar …")
-        man = client(row).backup(str(work), progress=prog, budget=step_budget(row))
+        c = client(row)
+        base, base_dest = _backup_base(site_id)
+        progress(job_id, "Backup: startar (bara ändrade filer) …" if base else "Backup: startar …")
+        man = c.backup(str(work), progress=prog, budget=step_budget(row), base=base)
         progress(job_id, "Backup: sparar …")
-        stats = store.ingest(work, dest)
-        db.run("UPDATE backups SET status='done', size=?, files=?, tables=?, path=? WHERE id=?",
-               stats["size"], stats["files"], man.get("tables", 0), str(dest), backup_id)
+        try:
+            stats = store.ingest(work, dest, base_dest)
+        except store.BaseMismatch as e:
+            # Den förra backupen räckte inte som grund – ta en hel direkt i stället.
+            log.warning("Stegvis backup gick inte för sajt %s (%s) – tar en hel", site_id, e)
+            c.finish_backup(man["_job"], keep=False)
+            shutil.rmtree(work, ignore_errors=True)
+            shutil.rmtree(dest, ignore_errors=True)
+            progress(job_id, "Backup: tar en hel backup …")
+            man = c.backup(str(work), progress=prog, budget=step_budget(row))
+            progress(job_id, "Backup: sparar …")
+            stats = store.ingest(work, dest)
+        db.run("UPDATE backups SET status='done', size=?, files=?, tables=?, path=?, pjob=?, incremental=?, fetched=? WHERE id=?",
+               stats["size"], stats["files"], man.get("tables", 0), str(dest), man.get("job") or man.get("_job"),
+               1 if stats.get("incremental") else 0, stats.get("fetched", stats["size"]), backup_id)
+        c.finish_backup(man["_job"], keep=True)  # Nu är den sparad – sajten använder den som grund nästa gång.
         db.run("UPDATE sites SET last_backup = ? WHERE id = ?", int(time.time()), site_id)
         if man.get("skipped"):
             db.event(site_id, "warning", f"Backup klar men {len(man['skipped'])} filer hoppades över",
                      "\n".join(f"{s['file']} – {s['reason']}" for s in man["skipped"][:30]))
-        db.event(site_id, "ok", "Backup klar",
-                 f"{stats['files']} filer, {man.get('tables', 0)} tabeller, {fmt_bytes(stats['size'])} (nytt i lagret: {fmt_bytes(stats['new_bytes'])})")
+        if stats.get("incremental"):
+            ch = stats['changed']
+            detail = (f"{stats['files']} filer, varav {ch} {'ny eller ändrad' if ch == 1 else 'nya eller ändrade'}. "
+                      f"Hämtade {fmt_bytes(stats['fetched'])} av {fmt_bytes(stats['size'])} (nytt i lagret: {fmt_bytes(stats['new_bytes'])})")
+        else:
+            detail = f"{stats['files']} filer, {man.get('tables', 0)} tabeller, {fmt_bytes(stats['size'])} (nytt i lagret: {fmt_bytes(stats['new_bytes'])})"
+        db.event(site_id, "ok", "Backup klar", detail)
         return backup_id
     except Exception as e:
         msg = e.message if isinstance(e, SajtvaktError) else str(e)

@@ -84,9 +84,9 @@
         <tr>
           <td class="nowrap">{{ b.created | ts }}{% if b.note and b.note != KIND_NAMES.get(b.kind) %}<div class="muted small">{{ b.note }}</div>{% endif %}</td>
           <td class="nowrap hide-sm">
-            {% if b.status == 'done' %}<span class="muted">{{ KIND_NAMES.get(b.kind, b.kind) }}</span>
+            {% if b.status == 'done' %}<span class="muted">{{ KIND_NAMES.get(b.kind, b.kind) }}</span>{% if b.incremental %}<div class="muted small" title="Bara nya och ändrade filer hämtades – resten fanns redan i lagret">hämtade {{ b.fetched | bytes }}</div>{% endif %}
             {% elif b.status == 'running' %}<span class="badge">Pågår</span>
-            {% else %}<span class="badge bad" title="{{ b.error }}">Misslyckad</span>{% endif %}
+            {% else %}<span class="badge bad" title="{{ b.error }}">Misslyckad</span>{% if b.error %}<div class="muted small" style="white-space:normal;max-width:280px">{{ b.error | truncate(90) }}</div>{% endif %}{% endif %}
           </td>
           <td class="r muted nowrap">{{ (b.size | bytes) if b.status == 'done' else '' }}<div class="small">{{ (b.files ~ ' filer') if b.status == 'done' else '' }}</div></td>
           <td class="r">

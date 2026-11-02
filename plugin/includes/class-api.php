@@ -98,7 +98,7 @@ final class Sajtvakt_Api {
 				$out = Sajtvakt_Backup::discard( $p( 'job' ), $p( 'file' ) );
 				break;
 			case 'backup_finish':
-				$out = Sajtvakt_Backup::finish( $p( 'job' ) );
+				$out = Sajtvakt_Backup::finish( $p( 'job' ), (bool) $p( 'keep', false ) );
 				break;
 
 			case 'update':

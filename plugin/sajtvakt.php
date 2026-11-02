@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Sajtvakt
  * Description:       Backup, uppdateringar och återställning – styrs från din egen Sajtvakt-server.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Plugin URI:        https://github.com/daystudioab/sajtvakt
  * Update URI:        https://github.com/daystudioab/sajtvakt
  * Requires at least: 6.0

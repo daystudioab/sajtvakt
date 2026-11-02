@@ -112,6 +112,13 @@ def init() -> None:
             conn().execute(f"ALTER TABLE sites ADD COLUMN {col} {definition}")
     if "acked" not in {r["name"] for r in conn().execute("PRAGMA table_info(events)")}:
         conn().execute("ALTER TABLE events ADD COLUMN acked INTEGER NOT NULL DEFAULT 0")
+    bcols = {r["name"] for r in conn().execute("PRAGMA table_info(backups)")}
+    if "pjob" not in bcols:  # Sajtens jobb-id – grunden för nästa stegvisa backup.
+        conn().execute("ALTER TABLE backups ADD COLUMN pjob TEXT")
+    if "incremental" not in bcols:
+        conn().execute("ALTER TABLE backups ADD COLUMN incremental INTEGER NOT NULL DEFAULT 0")
+    if "fetched" not in bcols:  # Byte som faktiskt hämtades från sajten.
+        conn().execute("ALTER TABLE backups ADD COLUMN fetched INTEGER NOT NULL DEFAULT 0")
     config.DB_PATH.chmod(0o600)
 
 

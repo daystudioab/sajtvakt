@@ -141,11 +141,18 @@ class Site:
         return self.request("status", {"refresh": refresh})
 
     def backup(self, dest_dir: str, *, files: bool = True, database: bool = True,
-               budget: int = 20, chunk: int = 8 * 1024 * 1024,
+               budget: int = 20, chunk: int = 8 * 1024 * 1024, base: str = "",
                progress: Callable[[dict], None] | None = None) -> dict:
-        """Kör en hel backup och laddar ner allt till dest_dir. Returnerar manifestet."""
+        """Kör en backup och laddar ner allt till dest_dir. Returnerar manifestet (med "_job").
+
+        base = sajtens jobb-id för den senaste backup vi har sparat. Känner sajten igen den
+        skickas bara nya och ändrade filer. Anroparen avslutar med finish_backup(), med
+        keep=True när backupen är sparad – då blir den grunden för nästa gång."""
         os.makedirs(dest_dir, exist_ok=True)
-        job = self.request("backup_start", {"files": files, "database": database})
+        params = {"files": files, "database": database}
+        if base:
+            params["base"] = base
+        job = self.request("backup_start", params)
         jid = job["job"]
         try:
             fetched: set[str] = set()
@@ -170,14 +177,19 @@ class Site:
                 manifest = json.load(f)
             for out in manifest.get("outputs", []):
                 self._safe_path(dest_dir, out["name"])
+            manifest["_job"] = jid
             return manifest
-        finally:
-            try:
-                self.request("backup_finish", {"job": jid})
-            except Exception:
-                pass
+        except BaseException:
+            self.finish_backup(jid, keep=False)
+            raise
 
-    SAFE_NAME = re.compile(r"^(database\.sql\.gz|files-\d{3}\.zip|manifest\.json)$")
+    def finish_backup(self, jid: str, keep: bool = False) -> None:
+        try:
+            self.request("backup_finish", {"job": jid, "keep": keep})
+        except Exception:
+            pass
+
+    SAFE_NAME = re.compile(r"^(database\.sql\.gz|files-\d{3}\.zip|index\.json\.gz|manifest\.json)$")
 
     def _safe_path(self, dest_dir: str, name: str) -> str:
         """Filnamn kommer från sajten – en hackad sajt får aldrig kunna skriva utanför backupmappen."""
