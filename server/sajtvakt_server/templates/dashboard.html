@@ -7,14 +7,9 @@
     <div class="sub">{{ now | longdate }} · {% if needs %}{{ needs | length }} {{ 'sak behöver' if needs | length == 1 else 'saker behöver' }} dig{% else %}allt lugnt{% endif %}</div>
   </div>
   <div class="actions">
-    <form class="search" method="get" action="/tillagg" role="search">
-      <label class="sr" for="sok">Sök tillägg på alla sajter</label>
-      <input id="sok" type="search" name="q" placeholder="Sök tillägg …" autocomplete="off">
-      {{ icon("search") }}
-    </form>
     <form method="post" action="/uppdatera-alla" class="inline">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">
-      <button class="btn" {{ 'disabled' if not totals.updates }} title="{{ 'Uppdatera allt på alla sajter nu – en backup tas först' if totals.updates else 'Inget att uppdatera' }}"
+      <button class="btn go-all" {{ 'disabled' if not totals.updates }} title="{{ 'Uppdatera allt på alla sajter nu – en backup tas först' if totals.updates else 'Inget att uppdatera' }}"
         data-confirm-btn="Uppdatera allt på alla sajter nu? En backup tas av varje sajt först, och det som går sönder återställs automatiskt.">{{ icon("updates") }}Uppdateringar{% if totals.updates %} ({{ totals.updates }}){% endif %}</button>
     </form>
     <a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a>
@@ -29,7 +24,7 @@
 <div class="cols">
   <section class="main-col" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
     <div class="col-head">
-      <h2 id="sajter-h">{{ icon("sites") }}Sajter · {{ sites | length }}</h2>
+      <h2 id="sajter-h">Sajter · {{ sites | length }}</h2>
       {% if sites %}<div class="sorter" role="group" aria-label="Sortera">Sortera: <a href="/?sort=status" class="{{ 'on' if sort == 'status' }}">Status</a> · <a href="/?sort=namn" class="{{ 'on' if sort == 'namn' }}">Namn</a></div>{% endif %}
     </div>
     {% if not sites %}
@@ -68,8 +63,7 @@
   </section>
 
   <div class="side-col">
-    <section aria-labelledby="need-h" style="display:flex;flex-direction:column;gap:12px">
-      <h2 id="need-h">{{ icon("warn") }}Behöver dig{% if needs %} · {{ needs | length }}{% endif %}</h2>
+    <section class="need-sec" aria-label="{{ 'Behöver dig' if needs else 'Läget' }}" style="display:flex;flex-direction:column;gap:12px">
       {% if needs %}
       <div class="needs {{ 'bad' if needs | selectattr('kind', 'equalto', 'bad') | list else 'warn' }}">
       {% for n in needs[:5] %}
@@ -99,15 +93,15 @@
       {% endif %}
     </section>
 
-    <section class="kpis stack" aria-label="Nyckeltal">
-      <div class="kpi"><span class="kic">{{ icon("status") }}</span><span class="kt"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></span></div>
-      <div class="kpi"><span class="kic">{{ icon("backup") }}</span><span class="kt"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></span></div>
-      <div class="kpi"><span class="kic">{{ icon("storage") }}</span><span class="kt"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></span></div>
+    <section class="stats" aria-label="Nyckeltal">
+      <div class="stat {{ 'bad' if totals.down }}"><span class="v">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span><span class="l">{{ icon("status") }}Uppe</span></div>
+      <div class="stat {{ 'warn' if totals.sites and totals.fresh < totals.sites }}"><span class="v">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span><span class="l">{{ icon("backup") }}Backup i dag</span></div>
+      {% set parts = (totals.stored | bytes).split(' ') %}<div class="stat"><span class="v">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span><span class="l">{{ icon("storage") }}Lagrat</span></div>
     </section>
 
     {% if log %}
     <section aria-labelledby="logg-h" style="display:flex;flex-direction:column;gap:12px">
-      <div class="col-head"><h2 id="logg-h">{{ icon("log") }}Logg</h2><a class="more-link" href="/handelser">Alla händelser</a></div>
+      <div class="col-head"><h2 id="logg-h">Logg</h2><a class="more-link" href="/handelser">Alla händelser</a></div>
       <ul class="log">
       {% for e in log %}
         <li><span class="sq {{ e.level }}"></span><span class="t">{{ e.title }} <span class="s">· {{ e.site_name or 'Sajtvakt' }}</span></span><span class="w">{{ e.created | when }}</span></li>

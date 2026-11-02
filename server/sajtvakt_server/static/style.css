@@ -475,14 +475,42 @@ details.use[open] { z-index: 21; }
 .events .sn.error { color: var(--bad-dot); }
 .events .sn:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-/* Nyckeltal i högerspalten, staplade i en glasruta mellan Behöver dig och Logg. */
-.kpis.stack { display: flex; flex-direction: column; gap: 0; margin: 0; border: 2px solid rgba(255, 255, 255, .1); border-radius: 12px; overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .065), rgba(255, 255, 255, .04));
-  -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3); box-shadow: 0 24px 50px -28px rgba(0, 0, 0, .8); }
-.kpis.stack .kpi { padding: 14px 18px; gap: 16px; border-top: 2px solid rgba(255, 255, 255, .07); }
-.kpis.stack .kpi:first-child { border-top: 0; }
-.kpis.stack .kpi .kic .ic { width: 26px; height: 26px; }
-.kpis.stack .kpi .kt { flex-direction: row-reverse; align-items: baseline; justify-content: space-between; flex: 1; gap: 12px; }
-.kpis.stack .kpi .n { font-size: 24px; }
-.kpis.stack .kpi .l { font-size: 13.5px; color: var(--soft); }
 .actions .btn .ic { width: 16px; height: 16px; }
+
+/* ---- Nyckeltal: tre öppna tal i rad, åtskilda av tunna linjer – inga rutor ---- */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px 0; }
+.stat { display: flex; flex-direction: column; gap: 8px; padding: 2px 14px; min-width: 0; border-left: 2px solid rgba(255, 255, 255, .06); }
+.stat:first-child { padding-left: 2px; border-left: 0; }
+.stat .v { font-size: 30px; font-weight: 500; line-height: 1; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; }
+.stat .v .of { font-size: 15px; font-weight: 400; letter-spacing: 0; color: var(--dim); }
+.stat .l { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.stat .l .ic { width: 15px; height: 15px; flex: none; color: var(--accent); stroke-width: 2; }
+.stat.warn .v { color: var(--warn-dot); }
+.stat.bad .v { color: var(--bad-dot); }
+
+/* ---- Rubrikraden: Behöver dig ligger i höjd med sajtlistan ---- */
+.side-col > .need-sec { margin-top: 31px; }
+@media (max-width: 900px) { .side-col > .need-sec { margin-top: 0; } }
+
+/* ---- Knapparna uppe till höger: lika höga; Uppdateringar med grön ram och ikon ---- */
+.head .actions .btn { min-height: 44px; padding: 0 18px; font-size: 14px; }
+.btn.go-all { border-color: rgba(70, 212, 154, .55); }
+.btn.go-all .ic { color: var(--accent); width: 16px; height: 16px; }
+.btn.go-all:hover { border-color: var(--accent); background: rgba(70, 212, 154, .08); }
+.btn.go-all[disabled] { border-color: rgba(255, 255, 255, .1); }
+.btn.go-all[disabled] .ic { color: var(--dim); }
+
+/* ---- Grupprubriken: lite mörkare i stället för ljusare ---- */
+.group > summary, .group-row { background: rgba(0, 0, 0, .22); }
+.group > summary:hover { background: rgba(0, 0, 0, .3); }
+.group:not([open]) > summary { background: rgba(0, 0, 0, .12); }
+
+/* ---- Alla kanter lite mörkare ---- */
+.group, .log, .card, .side, .notice, .flash, .job { border-color: rgba(255, 255, 255, .065); }
+.site-row, .need, .log li, td, th, .events li, .missing { border-color: rgba(255, 255, 255, .045); }
+.btn:not(.primary):not(.go-all):not(.ghost) { border-color: rgba(255, 255, 255, .09); }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=search], select, textarea { border-color: rgba(255, 255, 255, .08); }
+.thumb { box-shadow: 0 0 0 2px rgba(255, 255, 255, .05); }
+.site-row.warn .thumb { box-shadow: 0 0 0 2px rgba(252, 164, 42, .45); }
+.site-row.bad .thumb { box-shadow: 0 0 0 2px rgba(252, 40, 82, .5); }
+.site-row.maint .thumb { box-shadow: 0 0 0 2px rgba(157, 95, 227, .5); }
