@@ -728,9 +728,11 @@ def _set_maintenance(row, on: bool) -> None:
 
 @app.post("/sajt/{site_id}/installningar")
 def site_settings(request: Request, site_id: int, csrf_token: str = Form(""), name: str = Form(""), auto_update: str = Form("0"),
-                  maintenance: str = Form("0"), group: str = Form("")):
+                  maintenance: str = Form("0"), group: str = Form(""), group_new: str = Form("")):
     csrf(request, csrf_token)
     row = _site_or_404(site_id)
+    if group == "__ny__":
+        group = group_new
     db.run("UPDATE sites SET name = ?, auto_update = ?, group_name = ? WHERE id = ?", name.strip() or row["name"],
            1 if auto_update == "1" else 0, " ".join(group.split())[:60], site_id)
     _set_maintenance(row, maintenance == "1")
