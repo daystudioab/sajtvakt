@@ -21,10 +21,10 @@
 {% endif %}
 
 <section class="kpis" aria-label="Nyckeltal">
-  <div class="kpi"><span class="l">{{ icon("status") }}Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
-  <div class="kpi"><span class="l">{{ icon("backup") }}Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
-  <div class="kpi"><span class="l">{{ icon("updates") }}Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></div>
-  <div class="kpi"><span class="l">{{ icon("storage") }}Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></div>
+  <div class="kpi"><span class="kic">{{ icon("status") }}</span><span class="kt"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></span></div>
+  <div class="kpi"><span class="kic">{{ icon("backup") }}</span><span class="kt"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></span></div>
+  <div class="kpi"><span class="kic">{{ icon("updates") }}</span><span class="kt"><span class="l">Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></span></div>
+  <div class="kpi"><span class="kic">{{ icon("storage") }}</span><span class="kt"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></span></div>
 </section>
 
 <div class="cols">
