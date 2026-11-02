@@ -2,7 +2,7 @@
 {% block title %}Tillägg · Sajtvakt{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>Tillägg på alla sajter</h1>
+  <div><h1>{{ icon("plugins") }}Tillägg på alla sajter</h1>
     <div class="sub muted small">{{ groups | length }} olika tillägg på {{ total_sites }} sajter · enligt senast hämtade status{% if unknown %} · {{ unknown | length }} sajt{{ 'er' if unknown | length > 1 }} saknar status{% endif %}</div></div>
 </div>
 

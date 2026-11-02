@@ -140,6 +140,7 @@ _ICON_PATHS = {
     "trash": '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/>',
     "storage": '<path d="M2 5h12v8H2ZM4 5V3h8v2"/>',
     "chev": '<path d="m6 3.5 4.5 4.5L6 12.5"/>',
+    "plus": '<path d="M8 3v10M3 8h10"/>',
     "folder": '<path d="M1.8 4.2a1 1 0 0 1 1-1h3.4l1.5 1.6h5.5a1 1 0 0 1 1 1v6.9a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1Z"/>',
 }
 

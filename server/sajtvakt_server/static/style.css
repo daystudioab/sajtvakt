@@ -53,7 +53,10 @@ h1, h2, h3 { line-height: 1.25; margin: 0; }
 h1, h2, h3, .side nav a, .linkbtn, .brand, .group-row .gname, .th { font-family: var(--head); text-transform: uppercase; }
 h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.06em; }
 h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.09em; }
-h2 .ic { display: none; }
+h2:has(> .ic), h1:has(> .ic) { display: flex; align-items: center; gap: 9px; }
+h2 .ic { width: 16px; height: 16px; flex: none; color: var(--green); }
+h1 .ic { width: 22px; height: 22px; flex: none; color: var(--green); stroke-width: 1.4; }
+h1:has(> .ic) { gap: 12px; }
 code, .mono { font-family: var(--mono); font-size: 13px; font-weight: 400; }
 strong, b { font-weight: 600; }
 .muted { color: var(--muted); }
@@ -80,7 +83,9 @@ strong, b { font-weight: 600; }
 .side nav a { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 8px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0.09em; }
 .side nav a:hover { color: var(--ink); background: #f4f5f4; }
 .side nav a.on { color: var(--ink); background: #f0f2f0; box-shadow: inset 3px 0 0 var(--accent); }
-.side nav svg { display: none; }
+.side nav svg { width: 17px; height: 17px; flex: none; color: var(--dim); }
+.side nav a:hover svg { color: var(--ink); }
+.side nav a.on svg { color: var(--green); }
 .side nav .count { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--warn); letter-spacing: 0; }
 .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .side .meta-box { border-top: 1px solid var(--line); padding: 16px 12px; display: flex; flex-direction: column; gap: 12px; }
@@ -90,7 +95,7 @@ strong, b { font-weight: 600; }
 .side .foot form { margin: 0; }
 .linkbtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 42px; padding: 0 12px; background: none; border: 0; border-radius: 8px; font: inherit; font-family: var(--head); text-transform: uppercase; font-size: 12px; font-weight: 500; letter-spacing: 0.09em; color: var(--muted); cursor: pointer; }
 .linkbtn:hover { color: var(--ink); background: #f4f5f4; }
-.linkbtn svg { display: none; }
+.linkbtn svg { width: 17px; height: 17px; color: var(--dim); }
 
 main { flex: 1; min-width: 0; padding: 30px 34px 60px; max-width: 1440px; }
 
@@ -100,6 +105,7 @@ main { flex: 1; min-width: 0; padding: 30px 34px 60px; max-width: 1440px; }
   .brand { margin: 0 8px 0 4px; }
   .side nav { flex-direction: row; flex: 1 1 auto; overflow-x: auto; }
   .side nav a { min-height: 40px; padding: 0 10px; font-size: 11.5px; }
+  .side nav svg, .linkbtn svg { display: none; }
   .side nav a.on { box-shadow: inset 0 -2px 0 var(--accent); }
   .side .foot { margin: 0; flex-direction: row; }
   .side .meta-box { display: none; }
@@ -129,7 +135,8 @@ main { flex: 1; min-width: 0; padding: 30px 34px 60px; max-width: 1440px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 30px; overflow: hidden; }
 .kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; box-shadow: -1px 0 0 var(--line); }
 .kpi .orb { display: none; }
-.kpi .l { font-family: var(--head); text-transform: uppercase; letter-spacing: 0.09em; font-size: 11px; color: var(--muted); }
+.kpi .l { display: flex; align-items: center; gap: 7px; font-family: var(--head); text-transform: uppercase; letter-spacing: 0.09em; font-size: 11px; color: var(--muted); }
+.kpi .l .ic { width: 14px; height: 14px; flex: none; color: var(--green); }
 .kpi .n { font-size: 30px; font-weight: 500; line-height: 1; }
 .kpi .n .of { font-size: 15px; font-weight: 400; color: var(--dim); }
 .kpi .n.ok { color: var(--ok); }
@@ -157,6 +164,7 @@ main { flex: 1; min-width: 0; padding: 30px 34px 60px; max-width: 1440px; }
 .group > summary:hover { background: #f2f4f2; }
 .group-row .chev { width: 13px; height: 13px; color: var(--muted); transition: transform .15s; flex: none; }
 .group[open] .group-row .chev { transform: rotate(90deg); }
+.group-row .gic { width: 15px; height: 15px; flex: none; color: var(--muted); }
 .group-row .gname { font-size: 12px; font-weight: 600; letter-spacing: 0.09em; }
 .group-row .gcount { font-size: 12px; color: var(--muted); }
 .group-row .pill { margin-left: auto; }

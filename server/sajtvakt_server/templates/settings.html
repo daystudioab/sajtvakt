@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Inställningar · Sajtvakt{% endblock %}
 {% block content %}
-<div class="head"><div><h1>Inställningar</h1><div class="sub muted small">Tidszon {{ tz }} · lagrat totalt {{ usage | bytes }}</div></div></div>
+<div class="head"><div><h1>{{ icon("settings") }}Inställningar</h1><div class="sub muted small">Tidszon {{ tz }} · lagrat totalt {{ usage | bytes }}</div></div></div>
 <div class="grid two">
   <div class="card"><div class="card-body" style="padding-top:16px">
     <h2>{{ icon("clock") }}Nattlig körning och larm</h2>
