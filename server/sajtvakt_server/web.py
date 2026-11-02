@@ -888,6 +888,27 @@ def backup_push(request: Request, backup_id: int, csrf_token: str = Form(""), ta
                   ("Återställning" if mode == "restore" else "Flytt") + " startad. En säkerhetsbackup av sajten tas först.")
 
 
+@app.post("/backup/{backup_id}/ta-bort")
+def backup_delete(request: Request, backup_id: int, csrf_token: str = Form("")):
+    csrf(request, csrf_token)
+    b = db.one("SELECT * FROM backups WHERE id = ?", backup_id)
+    if not b:
+        return back("/", "Backupen finns inte.", bad=True)
+    url = f"/sajt/{b['site_id']}"
+    if b["status"] == "running":
+        return back(url, "Backupen pågår fortfarande – vänta tills den är klar.", bad=True)
+    # En backup som just nu används för en återställning eller flytt får inte försvinna.
+    if jobs.busy(b["site_id"]) or db.one("SELECT 1 FROM jobs WHERE kind IN ('restore','migrate') AND status IN ('queued','running')"):
+        return back(url, "Ett jobb pågår – ta bort backupen när det är klart.", bad=True)
+    store.delete_backup(b["path"])
+    db.run("DELETE FROM backups WHERE id = ?", backup_id)
+    if b["status"] == "done":
+        kind = templates.env.globals["KIND_NAMES"].get(b["kind"], b["kind"])
+        db.event(b["site_id"], "info", "Backup borttagen", f"{_ts(b['created'])} ({kind}, {jobs.fmt_bytes(b['size'])})")
+        return back(url, "Backupen är borttagen. Utrymmet frigörs vid nattens städning (filer som andra backuper använder ligger kvar).")
+    return back(url, "Den misslyckade backupen är borttagen ur listan.")
+
+
 @app.get("/backup/{backup_id}/ladda-ner")
 def backup_download(request: Request, backup_id: int):
     auth(request)

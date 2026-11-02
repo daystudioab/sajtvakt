@@ -38,7 +38,7 @@
 <script>
 // Bekräftelser och jobbpolling, utan ramverk.
 document.addEventListener('submit', function (e) {
-  var msg = e.target.getAttribute('data-confirm');
+  var msg = (e.submitter && e.submitter.getAttribute('data-confirm-btn')) || e.target.getAttribute('data-confirm');
   if (msg && !confirm(msg)) e.preventDefault();
 });
 document.querySelectorAll('[data-job]').forEach(function (el) {

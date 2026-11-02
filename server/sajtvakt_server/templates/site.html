@@ -80,6 +80,7 @@
     <div><table>
       <thead><tr><th>Datum</th><th class="hide-sm">Typ</th><th class="r">Storlek</th><th></th></tr></thead>
       <tbody>
+      {% set newest = backups | selectattr('status', 'equalto', 'done') | first %}{% set newest_id = newest.id if newest else 0 %}
       {% for b in backups %}
         <tr>
           <td class="nowrap">{{ b.created | ts }}{% if b.note and b.note != KIND_NAMES.get(b.kind) %}<div class="muted small">{{ b.note }}</div>{% endif %}</td>
@@ -103,9 +104,13 @@
                 <div class="row" style="margin-top:8px">
                   <button class="btn primary small" {{ 'disabled' if busy }}>Kör</button>
                   <a class="btn small" href="/backup/{{ b.id }}/ladda-ner">Ladda ner</a>
+                  <button class="btn ghost danger small" style="margin-left:auto" formaction="/backup/{{ b.id }}/ta-bort" formnovalidate {{ 'disabled' if busy }}
+                    data-confirm-btn="{{ 'Ta bort den senaste backupen? Nästa backup blir då en hel backup.' if b.id == newest_id else 'Ta bort backupen från ' ~ (b.created | ts) ~ '?' }}">Ta bort</button>
                 </div>
               </form>
             </details>
+            {% else %}
+            <form method="post" action="/backup/{{ b.id }}/ta-bort" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn ghost small" {{ 'disabled' if b.status == 'running' }}>Ta bort</button></form>
             {% endif %}
           </td>
         </tr>
