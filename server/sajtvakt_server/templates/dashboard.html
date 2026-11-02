@@ -2,14 +2,15 @@
 {% block title %}Översikt · Sajtvakt{% endblock %}
 {% block content %}
 <div class="head">
-  <div class="title">
+  <div>
     <h1>Översikt</h1>
-    <span class="mono muted">{{ now | dayline }}</span>
+    <div class="sub">{{ now | longdate }} · {% if needs %}{{ needs | length }} {{ 'sak behöver' if needs | length == 1 else 'saker behöver' }} dig{% else %}allt lugnt{% endif %}</div>
   </div>
   <div class="actions">
     <form class="search" method="get" action="/tillagg" role="search">
       <label class="sr" for="sok">Sök tillägg på alla sajter</label>
-      <input id="sok" type="search" name="q" placeholder="Sök tillägg på alla sajter …" autocomplete="off">
+      <input id="sok" type="search" name="q" placeholder="Sök tillägg …" autocomplete="off">
+      {{ icon("search") }}
     </form>
     <a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a>
   </div>
@@ -19,109 +20,118 @@
 <div class="notice warn">E-postlarm är inte påslagna än. Fyll i e-post under <a href="/installningar">Inställningar</a>.</div>
 {% endif %}
 
-{% set warn_icon %}<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 18 16.5H2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.2" r="1.1" fill="currentColor"/></svg>{% endset %}
+<section class="kpis" aria-label="Nyckeltal">
+  <div class="kpi"><span class="orb {{ 'bad' if totals.down }}">{{ icon("status") }}</span><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
+  <div class="kpi"><span class="orb {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ icon("backup") }}</span><span class="l">Backup senaste dygnet</span><span class="n">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
+  <div class="kpi"><span class="orb">{{ icon("updates") }}</span><span class="l">Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></div>
+  <div class="kpi"><span class="orb">{{ icon("storage") }}</span><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></div>
+</section>
 
-<div class="top-row">
-  {% if down %}
-  <section class="attn bad" aria-labelledby="attn-h">
-    <div class="h">{{ warn_icon }}<h2 id="attn-h">{% if down | length == 1 %}{{ down[0].name }} är nere{% else %}{{ down | length }} sajter är nere{% endif %}</h2>
-      <span class="when">sedan {{ down[0].down_since | ts('%H:%M') }}</span></div>
-    <p>{% for d in down %}{{ d.name }} svarar inte som den ska{% if d.last_error %} ({{ d.last_error }}){% endif %}.{{ '\n' if not loop.last }}{% endfor %}
-Sajtvakt kollar igen var 5:e minut och mejlar när {{ 'den' if down | length == 1 else 'de' }} är uppe.{% if down[0].last_code == 503 %}
-Den svarar med en underhållssida (503). Är det med flit? Slå på underhållsläge, så larmar Sajtvakt bara om sajten slutar svara helt eller visar fel.{% endif %}</p>
-    <div class="btns">
-      {% if down[0].last_code == 503 %}
-      <form method="post" action="/sajt/{{ down[0].id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="btn primary">Det är underhållsläge</button></form>
-      <a class="btn line" href="/sajt/{{ down[0].id }}">Visa sajten</a>
-      {% else %}
-      <a class="btn primary" href="/sajt/{{ down[0].id }}">Visa sajten</a>
-      {% endif %}
-      <a class="btn line" href="{{ down[0].url }}" target="_blank" rel="noopener">Öppna {{ down[0].url | host }}</a></div>
-  </section>
-  {% elif attention %}{% set a = attention[0] %}
-  <section class="attn warn" aria-labelledby="attn-h">
-    <div class="h">{{ warn_icon }}<h2 id="attn-h">{% if a.site_name %}{{ a.site_name }} · {% endif %}{{ a.title }}</h2><span class="when">{{ a.created | ago }}</span></div>
-    {% if a.detail %}<p>{{ a.detail | truncate(320) }}</p>{% endif %}
-    <div class="btns">
-      {% if a.site_id %}<a class="btn primary" href="/sajt/{{ a.site_id }}">Visa sajten</a>{% else %}<a class="btn primary" href="/handelser">Visa händelsen</a>{% endif %}
-      <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ a.ids | join(',') }}"><button class="btn line" title="Döljer den här varningen från översikten">{{ 'Kvittera' if attention | length == 1 else 'Kvittera, visa nästa' }}</button></form>
-      {% if attention | length > 1 %}<a class="more" href="/handelser">+{{ attention | length - 1 }} till att titta på</a>{% endif %}
+<div class="cols">
+  <section class="main-col" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
+    <div class="col-head">
+      <h2 id="sajter-h">Sajter <span class="muted" style="font-weight:600">{{ sites | length }}</span></h2>
+      {% if sites %}<div class="sorter well" role="group" aria-label="Sortera">Sortera <a href="/?sort=status" class="{{ 'on' if sort == 'status' }}">Status</a><a href="/?sort=namn" class="{{ 'on' if sort == 'namn' }}">Namn</a></div>{% endif %}
     </div>
+    {% if not sites %}
+    <div class="card empty">
+      <h2>Inga sajter ännu</h2>
+      <p>Installera Sajtvakt-tillägget på en WordPress-sajt, kopiera anslutningsnyckeln under Verktyg → Sajtvakt och klistra in den här.</p>
+      <a class="btn primary" href="/sajt/ny">Lägg till första sajten</a>
+    </div>
+    {% else %}
+    <div class="raised site-list">
+      {% for g in groups %}
+        {% if g.name %}
+        <details class="group" data-group="{{ g.name }}" open>
+          <summary>
+            {{ icon("chev", "chev") }}
+            <span class="gname">{{ g.name }}</span>
+            <span class="gcount">{{ g.meta }}</span>
+            <span class="gdots" aria-hidden="true">{% for m in g.sites %}<i class="{{ m.tone if m.tone in ('bad','warn','maint') }}"></i>{% endfor %}</span>
+            <span class="pill {{ g.kind }}">{{ g.label }}</span>
+          </summary>
+        {% endif %}
+        {% for s in g.sites %}{% set r = s.row %}
+          <a class="site-row {{ s.tone }}" href="/sajt/{{ r.id }}">
+            <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="168" height="108">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
+            <span class="who">
+              <span class="name">{{ r.name }}</span>
+              <span class="line"><span class="host">{{ r.url | host }}</span><span class="nights" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</span></span>
+            </span>
+            <span class="end">
+              <span class="pill {{ s.kind }}">{{ s.label }}</span>
+              {% if s.meta %}<span class="meta">{{ s.meta }}</span>{% endif %}
+            </span>
+          </a>
+        {% endfor %}
+        {% if g.name %}</details>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
-  {% else %}
-  <section class="attn ok" aria-labelledby="attn-h">
-    <div class="h"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2"/><path d="m6.5 10.2 2.4 2.4 4.6-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="attn-h">Allt lugnt</h2></div>
-    <p>{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% else %}Inget behöver göras just nu.
-{% if night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }} installerade{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}{% endif %}</p>
-  </section>
-  {% endif %}
 
-  <section class="kpis" aria-label="Nyckeltal">
-    <div class="kpi"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
-    <div class="kpi"><span class="l">Väntande uppd.</span><span class="n">{{ totals.updates }}</span></div>
-    <div class="kpi"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
-    <div class="kpi"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="u"> {{ parts[1] }}</span></span></div>
-  </section>
+  <div class="side-col">
+    <section aria-labelledby="need-h" style="display:flex;flex-direction:column;gap:14px">
+      <div class="col-head"><h2 id="need-h">Behöver dig</h2>{% if needs %}<span class="pill {{ 'bad' if needs[0].kind == 'bad' else 'warn' }}">{{ needs | length }}</span>{% endif %}</div>
+      {% for n in needs[:4] %}
+      <div class="need {{ n.kind }}">
+        <div class="top">
+          <span class="ib {{ n.kind }}">{{ icon(n.icon) }}</span>
+          <span class="txt">
+            <span class="t">{{ n.title }}</span>
+            {% if n.site_name %}<span class="d">{{ n.site_name }}{% if n.detail %} · {{ n.detail | truncate(150) }}{% endif %}</span>{% elif n.detail %}<span class="d">{{ n.detail }}</span>{% endif %}
+          </span>
+          {% if n.when %}<span class="w">{{ n.when }}</span>{% endif %}
+        </div>
+        <div class="btns">
+          {% if n.maint_button %}
+          <form method="post" action="/sajt/{{ n.site_id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="btn small primary {{ n.kind }}">Det är underhållsläge</button></form>
+          {% endif %}
+          {% if n.site_id %}<a class="btn small {{ 'line' if n.maint_button else 'primary ' ~ n.kind }}" href="/sajt/{{ n.site_id }}">Visa sajten</a>{% endif %}
+          {% if n.ids %}
+          <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ n.ids | join(',') }}"><button class="btn small line" title="Döljer varningen">Kvittera</button></form>
+          {% elif n.url %}<a class="btn small line" href="{{ n.url }}" target="_blank" rel="noopener">Öppna</a>{% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="need calm">
+        <span class="ib ok">{{ icon("check") }}</span>
+        <span class="txt"><span class="t">Allt lugnt</span>
+          <span class="d">{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% elif night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }}{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}</span></span>
+      </div>
+      {% endfor %}
+      {% if needs | length > 4 %}<a class="more-link" href="/handelser">+{{ needs | length - 4 }} till under Händelser</a>{% endif %}
+    </section>
+
+    {% if log %}
+    <section aria-labelledby="logg-h" style="display:flex;flex-direction:column;gap:14px">
+      <div class="col-head"><h2 id="logg-h">Logg</h2><a class="more-link" href="/handelser">Alla</a></div>
+      <ul class="raised log">
+      {% for e in log %}
+        <li><span class="ib {{ {'ok':'ok','warning':'warn','error':'bad','info':'info'}.get(e.level, '') }}">{{ icon(LOG_ICONS.get(e.level, 'events')) }}</span>
+          <span class="txt"><span class="t">{{ e.title }}</span><span class="w">{{ e.created | when }}</span></span>
+          <span class="s">{{ e.site_name or 'Sajtvakt' }}</span></li>
+      {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
 </div>
-
-{% if not sites %}
-<div class="card empty">
-  <h2>Inga sajter ännu</h2>
-  <p>Installera Sajtvakt-pluginet på en WordPress-sajt, kopiera anslutningsnyckeln under Verktyg → Sajtvakt och klistra in den här.</p>
-  <a class="btn primary" href="/sajt/ny">Lägg till första sajten</a>
-</div>
-{% else %}
-<section aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
-  <div class="list-head">
-    <h2 id="sajter-h">{{ icon("sites") }}Sajter <span class="mono muted" style="font-weight:400">{{ sites | length }}</span></h2>
-    <div class="legend" aria-hidden="true"><span><i style="background:var(--ok-bar)"></i>Backup</span><span><i style="background:#e0a33a"></i>Uppdatering återställd</span><span><i style="background:#e05547"></i>Ingen backup</span></div>
-  </div>
-  <div class="sites">
-  {% for s in sites %}{% set r = s.row %}
-    <a class="site-card {{ s.tone }}" href="/sajt/{{ r.id }}">
-      <div class="shot">
-        {% if s.shot %}<img src="{{ s.shot }}" alt="Startsidan på {{ r.name }}" loading="lazy" width="640" height="400">
-          <span class="stamp">{{ s.shot_at | ago }}</span>
-        {% else %}<div class="empty-shot"><b aria-hidden="true">{{ r.name[:1] | upper }}</b><span>{{ 'Skärmdump tas snart' if shots_on else 'Ingen skärmdump' }}</span></div>{% endif %}
-        {% if s.job %}<span class="busy">{{ JOB_NAMES.get(s.job.kind, s.job.kind) }} pågår</span>{% endif %}
-      </div>
-      <div class="id">
-        <div><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></div>
-        {% if r.maintenance and (r.up != 0 or r.last_code == 503) %}<span class="state maint" title="Underhållssidan larmar inte"><span class="dot maint"></span>underhållsläge</span>
-        {% elif r.up == 1 %}<span class="state"><span class="dot up"></span>{{ r.response_ms ~ ' ms' if r.response_ms else 'uppe' }}</span>
-        {% elif r.up == 0 %}<span class="state down"><span class="dot down"></span>nere</span>
-        {% else %}<span class="state unknown"><span class="dot"></span>okänd</span>{% endif %}
-      </div>
-      <div class="nights">
-        <div class="bar" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</div>
-        <span class="cap">{% if r.last_backup %}backup {{ r.last_backup | ts('%H:%M') if (now - r.last_backup) < 86400 else r.last_backup | ago }}{% else %}ingen backup än{% endif %} · 14 nätter</span>
-      </div>
-      <div class="meta3">
-        <div><span class="k">Uppd.</span>{% if s.updates %}<span class="tag warn">{{ s.updates }}{% if s.locked %} · {{ s.locked }} låst{% endif %}</span>{% elif s.st %}<span class="tag ok">aktuell</span>{% else %}<span class="tag">–</span>{% endif %}</div>
-        <div><span class="k">WP</span><span class="v">{{ s.st.versions.wordpress if s.st else '–' }}</span></div>
-        <div><span class="k">SSL</span>
-          {% if r.ssl_days is none %}<span class="tag">–</span>
-          {% elif r.ssl_days < 0 %}<span class="tag bad">fel</span>
-          {% elif r.ssl_days < 14 %}<span class="tag warn">{{ r.ssl_days }} d</span>
-          {% else %}<span class="tag">{{ r.ssl_days }} d</span>{% endif %}</div>
-      </div>
-    </a>
-  {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{% if log %}
-<section class="card section" aria-labelledby="logg-h" style="margin-top:26px">
-  <div class="card-head"><h2 id="logg-h">{{ icon("log") }}Logg</h2><a class="small" href="/handelser">Alla händelser</a></div>
-  <div class="card-body">
-    <ul class="log">
-    {% for e in log %}
-      <li><span class="t">{{ e.created | when }}</span><span class="lv {{ e.level }}">{{ LEVELS.get(e.level, e.level) }}</span>
-        <span class="m"><span class="s">{{ e.site_name or 'Sajtvakt' }}</span> — {{ e.title }}</span></li>
-    {% endfor %}
-    </ul>
-  </div>
-</section>
-{% endif %}
+<script>
+// Kom ihåg vilka grupper som är ihopfällda (bara i den här webbläsaren).
+(function () {
+  var key = 'sv-closed-groups', closed = [];
+  try { closed = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+  document.querySelectorAll('details.group').forEach(function (d) {
+    if (closed.indexOf(d.dataset.group) !== -1) d.open = false;
+    d.addEventListener('toggle', function () {
+      var i = closed.indexOf(d.dataset.group);
+      if (d.open && i !== -1) closed.splice(i, 1);
+      if (!d.open && i === -1) closed.push(d.dataset.group);
+      try { localStorage.setItem(key, JSON.stringify(closed)); } catch (e) {}
+    });
+  });
+})();
+</script>
 {% endblock %}

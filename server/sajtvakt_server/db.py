@@ -100,6 +100,7 @@ MIGRATIONS = {
     "rescue_url": "TEXT",
     "maintenance": "INTEGER NOT NULL DEFAULT 0",
     "last_code": "INTEGER",
+    "group_name": "TEXT NOT NULL DEFAULT ''",
 }
 
 

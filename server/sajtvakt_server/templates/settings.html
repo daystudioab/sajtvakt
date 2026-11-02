@@ -64,4 +64,32 @@
     </div></div>
   </div>
 </div>
+{% set gs = all_groups() %}
+<div class="card section" style="margin-top:18px">
+  <div class="card-head"><h2>{{ icon("folder") }}Grupper</h2><span class="muted small">Välj grupp för en sajt under Inställningar på sajtens sida</span></div>
+  {% if gs %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Grupp</th><th class="r">Sajter</th><th>Byt namn</th></tr></thead>
+    <tbody>
+    {% for g in gs %}
+      <tr>
+        <td><strong>{{ g.name }}</strong></td>
+        <td class="r">{{ g.n }}</td>
+        <td>
+          <form class="row" method="post" action="/grupper/byt-namn">
+            <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="old" value="{{ g.name }}">
+            <label class="sr" for="g{{ loop.index }}">Nytt namn för {{ g.name }}</label>
+            <input id="g{{ loop.index }}" type="text" name="new" value="{{ g.name }}" style="max-width:240px">
+            <button class="btn small">Spara</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="card-body" style="padding-top:12px"><div class="hint" style="margin:0">Töm namnet och spara för att ta bort en grupp – sajterna ligger då kvar utan grupp.</div></div>
+  {% else %}
+  <div class="card-body"><p class="muted" style="margin:0">Inga grupper ännu. Ge en sajt en grupp under Inställningar på sajtens sida, till exempel "Kunder" eller "Egna".</p></div>
+  {% endif %}
+</div>
 {% endblock %}

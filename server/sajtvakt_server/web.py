@@ -66,6 +66,15 @@ def _dayline(value):
     return f"{DAYS[d.weekday()]} {d.day} {MONTHS[d.month - 1]} · {d:%H:%M}"
 
 
+LONGDAYS = ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"]
+LONGMONTHS = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"]
+
+
+def _longdate(value):
+    d = datetime.fromtimestamp(int(value), config.TZ)
+    return f"{LONGDAYS[d.weekday()]} {d.day} {LONGMONTHS[d.month - 1]}"
+
+
 def _when(value):
     """Kort tidsangivelse för loggar: "i natt 02:22", "i går 06:00", "fre 14:35", "12 okt"."""
     if not value:
@@ -87,6 +96,7 @@ def _host(url):
 
 templates.env.filters["ts"] = _ts
 templates.env.filters["dayline"] = _dayline
+templates.env.filters["longdate"] = _longdate
 templates.env.filters["when"] = _when
 templates.env.filters["host"] = _host
 templates.env.filters["ago"] = _ago
@@ -100,9 +110,9 @@ templates.env.globals["SHIELD"] = Markup(
     '<path d="m8.6 12.2 2.3 2.3 4.6-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 templates.env.globals["LOGO"] = Markup(
-    '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="25" height="25" rx="7" '
-    'stroke="currentColor" stroke-width="2"/><path d="M6 15h4l2-5 4 9 2-4h4" stroke="currentColor" stroke-width="2" '
-    'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    '<svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="2" width="34" height="34" rx="11" fill="currentColor" '
+    'opacity=".16"/><rect x="2" y="2" width="34" height="34" rx="11" stroke="currentColor" stroke-width="2"/>'
+    '<path d="M8 20h5l3-7 5 12 3-6h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 # Ikoner före rubrikerna: tunna linjer, 16 px, färgen ärvs (currentColor).
 _ICON_PATHS = {
@@ -121,11 +131,21 @@ _ICON_PATHS = {
     "clock": '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.5"/>',
     "info": '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.9v.1"/>',
     "search": '<circle cx="7" cy="7" r="4.8"/><path d="m10.5 10.5 3.7 3.7"/>',
+    "logout": '<path d="M6.5 2.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3M10.5 11l3-3-3-3M13.5 8H6"/>',
+    "check": '<path d="m3 8.5 3 3 7-7"/>',
+    "warn": '<path d="M8 2.2 14.6 13.6H1.4Z"/><path d="M8 6.6v3M8 11.8v.1"/>',
+    "down": '<circle cx="8" cy="8" r="6.2"/><path d="m5.8 5.8 4.4 4.4M10.2 5.8l-4.4 4.4"/>',
+    "rollback": '<path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8"/><path d="M2.4 1.9v2.6H5"/>',
+    "maint": '<path d="M10.2 2.4a3.4 3.4 0 0 0-4.3 4.3L2.2 10.4a1.4 1.4 0 0 0 2 2l3.7-3.7a3.4 3.4 0 0 0 4.3-4.3l-2 2-1.8-.3-.3-1.8Z"/>',
+    "trash": '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/>',
+    "storage": '<path d="M2 5h12v8H2ZM4 5V3h8v2"/>',
+    "chev": '<path d="m6 3.5 4.5 4.5L6 12.5"/>',
+    "folder": '<path d="M1.8 4.2a1 1 0 0 1 1-1h3.4l1.5 1.6h5.5a1 1 0 0 1 1 1v6.9a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1Z"/>',
 }
 
 
-def _icon(name: str) -> Markup:
-    return Markup('<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" '
+def _icon(name: str, cls: str = "ic") -> Markup:
+    return Markup(f'<svg class="{cls}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" '
                   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + _ICON_PATHS[name] + "</svg>")
 
 
@@ -230,7 +250,7 @@ def _attention() -> list[dict]:
     """Varningar som inte kvitterats, senaste veckan. Upprepningar (t.ex. SSL varje dag) slås ihop."""
     rows = db.q("SELECT e.*, s.name AS site_name FROM events e LEFT JOIN sites s ON s.id = e.site_id "
                 "WHERE e.acked = 0 AND e.level IN ('warning','error') AND e.created > ? "
-                "AND e.title NOT IN ('Sajten är nere') ORDER BY e.id DESC LIMIT 200", int(time.time()) - 7 * 86400)
+                "AND e.title NOT IN ('Sajten är nere') AND e.title NOT LIKE 'SSL-%' ORDER BY e.id DESC LIMIT 200", int(time.time()) - 7 * 86400)
     groups: dict = {}
     for r in rows:
         key = (r["site_id"], re.sub(r"\d+", "#", r["title"]))
@@ -354,6 +374,9 @@ def _nights(row, backup_days: set, rolled_days: set, today, backup_hour: int, n:
     return out
 
 
+SEVERITY = {"bad": 0, "warn": 1, "busy": 2, "maint": 3, "ok": 4}
+
+
 def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_hour=2) -> dict:
     st = jobs.status_of(row)
     n_updates = 0
@@ -361,33 +384,100 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         u = st["updates"]
         n_updates = u["plugins"] + u["themes"] + (1 if u["core"] else 0)
     running = db.one("SELECT * FROM jobs WHERE site_id=? AND status IN ('queued','running') ORDER BY id DESC LIMIT 1", row["id"])
-    out = {"row": row, "st": st, "updates": n_updates, "job": running,
-           "locked": len(json.loads(row["skip_plugins"] or "[]")),
+    locked = len(json.loads(row["skip_plugins"] or "[]"))
+    out = {"row": row, "st": st, "updates": n_updates, "job": running, "locked": locked,
            "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"])}
-    if today is not None:
-        nights = _nights(row, backup_days or set(), rolled_days or set(), today, backup_hour)
-        ok = sum(1 for x in nights if x["kind"] in ("ok", "roll"))
-        counted = sum(1 for x in nights if x["kind"] not in ("none", "wait"))
-        out["nights"] = nights
-        out["nights_label"] = f"Backup {ok} av {counted} nätter"
-        now = int(time.time())
-        stale = row["last_backup"] and now - row["last_backup"] > 36 * 3600
-        recent_trouble = any(x["kind"] in ("miss", "roll") for x in nights[-2:])
-        if row["maintenance"] and (row["up"] != 0 or row["last_code"] == 503):
-            out["tone"] = "maint"
-        elif row["up"] == 0:
-            out["tone"] = "bad"
-        elif row["maintenance"]:
-            out["tone"] = "maint"
-        elif (row["ssl_days"] is not None and row["ssl_days"] < 14) or stale or recent_trouble:
-            out["tone"] = "warn"
-        else:
-            out["tone"] = ""
+    if today is None:
+        return out
+    nights = _nights(row, backup_days or set(), rolled_days or set(), today, backup_hour, n=7)
+    out["nights"] = nights
+    ok = sum(1 for x in nights if x["kind"] in ("ok", "roll"))
+    counted = sum(1 for x in nights if x["kind"] not in ("none", "wait"))
+    out["nights_label"] = f"Backup {ok} av {counted} nätter"
+    now = int(time.time())
+    stale = bool(row["last_backup"]) and now - row["last_backup"] > 36 * 3600 and now - row["added"] > 36 * 3600
+    never = not row["last_backup"]
+    in_maint = bool(row["maintenance"]) and (row["up"] != 0 or row["last_code"] == 503)
+    # Läge (färg) och etikett. SSL följs i bakgrunden och mejlas, men visas inte här.
+    if row["up"] == 0 and not in_maint:
+        tone, label, kind = "bad", "Nere", "bad"
+    elif in_maint:
+        tone, label, kind = "maint", "Underhållsläge", "maint"
+    elif running:
+        tone, label, kind = "busy", f"{jobs.JOB_NAMES.get(running['kind'], running['kind'])} pågår", "info"
+    elif locked:
+        tone, label, kind = "warn", f"{locked} låst", "warn"
+    elif stale or (never and now - row["added"] > 3600):
+        tone, label, kind = "warn", "Backup saknas", "warn"
+    elif n_updates:
+        tone, label, kind = "ok", f"{n_updates} uppd.", ""
+    elif st:
+        tone, label, kind = "ok", "Aktuell", "ok"
+    else:
+        tone, label, kind = "ok", "Väntar på status", ""
+    out.update(tone=tone, label=label, kind=kind, severity=SEVERITY[tone])
+    parts = []
+    if row["last_backup"]:
+        lb = datetime.fromtimestamp(row["last_backup"], config.TZ)
+        parts.append(f"Backup {lb:%H:%M}" if now - row["last_backup"] < 86400 else f"Backup {_ago(row['last_backup'])}")
+    if row["up"] == 1 and row["response_ms"] and not in_maint:
+        parts.append(f"{row['response_ms']} ms")
+    if n_updates and label != f"{n_updates} uppd.":
+        parts.append(f"{n_updates} uppd.")
+    out["meta"] = " · ".join(parts)
     return out
 
 
+def _group_summary(name: str, members: list[dict]) -> dict:
+    """Samlad status för en grupp: det sämsta läget bland sajterna bestämmer."""
+    bad = sum(1 for m in members if m["tone"] == "bad")
+    warn = sum(1 for m in members if m["tone"] == "warn")
+    maint = sum(1 for m in members if m["tone"] == "maint")
+    updates = sum(m["updates"] for m in members)
+    if bad:
+        label, kind = (f"{bad} nere", "bad")
+    elif warn:
+        label, kind = (f"{warn} behöver dig", "warn")
+    elif maint == len(members):
+        label, kind = ("Underhållsläge", "maint")
+    else:
+        label, kind = ("Allt OK", "ok")
+    meta = f"{len(members)} {'sajt' if len(members) == 1 else 'sajter'}"
+    if maint and kind != "maint":
+        meta += f" · {maint} i underhåll"
+    if updates:
+        meta += f" · {updates} uppd."
+    return {"name": name, "sites": members, "label": label, "kind": kind, "meta": meta,
+            "severity": min((m["severity"] for m in members), default=4)}
+
+
+def _needs(sites: list[dict], attention: list[dict]) -> list[dict]:
+    """Rutorna under "Behöver dig": sajter som är nere först, sedan okvitterade varningar."""
+    out = []
+    for s in sites:
+        r = s["row"]
+        if s["tone"] == "bad":
+            out.append({"kind": "bad", "icon": "down", "site_id": r["id"], "title": f"{r['name']} är nere",
+                        "detail": ("Svarar med en underhållssida (503). Är det med flit? Slå på underhållsläge, så larmar Sajtvakt "
+                                   "bara om sajten slutar svara helt eller visar fel.") if r["last_code"] == 503
+                        else f"Svarar inte som den ska{' (' + r['last_error'] + ')' if r['last_error'] else ''}. Sajtvakt kollar var 5:e minut och mejlar när den är uppe.",
+                        "when": f"sedan {_ts(r['down_since'], '%H:%M')}" if r["down_since"] else "",
+                        "maint_button": r["last_code"] == 503, "url": r["url"]})
+    for a in attention:
+        if a["title"] == "Sajten är nere":
+            continue
+        roll = a["title"].startswith("Återställd") or "återställd" in a["title"]
+        out.append({"kind": "warn" if a["level"] == "warning" else "bad", "icon": "rollback" if roll else "warn",
+                    "site_id": a["site_id"], "title": a["title"], "site_name": a["site_name"],
+                    "detail": a["detail"] or "", "when": _when(a["created"]), "ids": a["ids"]})
+    return out
+
+
+LOG_ICONS = {"ok": "check", "info": "events", "warning": "warn", "error": "down"}
+
+
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request, sort: str = "status"):
     auth(request)
     now = int(time.time())
     today = datetime.now(config.TZ).date()
@@ -399,31 +489,44 @@ def dashboard(request: Request):
         backup_days.setdefault(b["site_id"], set()).add(day(b["created"]))
     rolled_days: dict[int, set] = {}
     for e in db.q("SELECT site_id, created FROM events WHERE created > ? AND site_id IS NOT NULL AND "
-                  "(title LIKE 'Återställd:%' OR title LIKE 'Uppdateringen fick sajten%')", since):
+                  "(title LIKE 'Återställd:%' OR title LIKE 'Uppdateringen fick sajten%' OR title LIKE 'WordPress-uppdateringen fick%')", since):
         rolled_days.setdefault(e["site_id"], set()).add(day(e["created"]))
     sites = [_site_summary(r, backup_days.get(r["id"]), rolled_days.get(r["id"]), today, backup_hour) for r in db.sites()]
+    by_name = sort == "namn"
+    key = (lambda s: s["row"]["name"].lower()) if by_name else (lambda s: (s["severity"], s["row"]["name"].lower()))
+    sites.sort(key=key)
+
+    named: dict[str, list] = {}
+    loose = []
+    for s in sites:
+        g = (s["row"]["group_name"] or "").strip()
+        (named.setdefault(g, []) if g else loose).append(s)
+    groups = [_group_summary(n, m) for n, m in named.items()]
+    groups.sort(key=(lambda g: g["name"].lower()) if by_name else (lambda g: (g["severity"], g["name"].lower())))
+    if loose:
+        groups.append(_group_summary("Utan grupp" if named else "", loose))
 
     attention = _attention()
-    down = [s["row"] for s in sites if s["row"]["up"] == 0
-            and not (s["row"]["maintenance"] and s["row"]["last_code"] == 503)]
+    needs = _needs(sites, attention)
     log = db.q("SELECT e.*, s.name AS site_name FROM events e LEFT JOIN sites s ON s.id = e.site_id "
-               "WHERE e.title != 'Backup klar' ORDER BY e.id DESC LIMIT 8")
+               "WHERE e.title != 'Backup klar' AND e.title NOT LIKE 'SSL-%' ORDER BY e.id DESC LIMIT 6")
     night = {
         "backups": db.one("SELECT COUNT(*) AS n FROM backups WHERE kind='nightly' AND status='done' AND created > ?", now - 86400)["n"],
         "updated": sum(int(m.group(1)) for e in db.q("SELECT title FROM events WHERE created > ? AND title LIKE 'Uppdaterade % st'", now - 86400)
                        if (m := re.match(r"Uppdaterade (\d+) st", e["title"]))),
     }
+    down = sum(1 for s in sites if s["tone"] == "bad")
     totals = {
         "sites": len(sites),
-        "up": sum(1 for s in sites if s["row"]["up"] == 1),
-        "down": len(down),
+        "up": len(sites) - down,
+        "down": down,
         "updates": sum(s["updates"] for s in sites),
         "fresh": sum(1 for s in sites if s["row"]["last_backup"] and now - s["row"]["last_backup"] < 26 * 3600),
         "stored": store.usage(),
     }
-    return render(request, "dashboard.html", sites=sites, attention=attention, down=down, log=log, night=night,
-                  totals=totals, mail_ok=mailer.configured(), backup_hour=backup_hour,
-                  any_busy=any(s["job"] for s in sites), shots_on=shots.available())
+    return render(request, "dashboard.html", sites=sites, groups=groups, needs=needs, log=log, night=night,
+                  totals=totals, mail_ok=mailer.configured(), backup_hour=backup_hour, sort="namn" if by_name else "status",
+                  any_busy=any(s["job"] for s in sites), shots_on=shots.available(), LOG_ICONS=LOG_ICONS)
 
 
 @app.get("/skarmdump/{site_id}")
@@ -619,12 +722,29 @@ def _set_maintenance(row, on: bool) -> None:
 
 @app.post("/sajt/{site_id}/installningar")
 def site_settings(request: Request, site_id: int, csrf_token: str = Form(""), name: str = Form(""), auto_update: str = Form("0"),
-                  maintenance: str = Form("0")):
+                  maintenance: str = Form("0"), group: str = Form("")):
     csrf(request, csrf_token)
     row = _site_or_404(site_id)
-    db.run("UPDATE sites SET name = ?, auto_update = ? WHERE id = ?", name.strip() or row["name"], 1 if auto_update == "1" else 0, site_id)
+    db.run("UPDATE sites SET name = ?, auto_update = ?, group_name = ? WHERE id = ?", name.strip() or row["name"],
+           1 if auto_update == "1" else 0, " ".join(group.split())[:60], site_id)
     _set_maintenance(row, maintenance == "1")
     return back(f"/sajt/{site_id}", "Sparat.")
+
+
+def _groups() -> list[dict]:
+    return [dict(r) for r in db.q("SELECT group_name AS name, COUNT(*) AS n FROM sites WHERE group_name != '' "
+                                  "GROUP BY group_name ORDER BY group_name COLLATE NOCASE")]
+
+
+templates.env.globals["all_groups"] = _groups
+
+
+@app.post("/grupper/byt-namn")
+def group_rename(request: Request, csrf_token: str = Form(""), old: str = Form(""), new: str = Form("")):
+    csrf(request, csrf_token)
+    new = " ".join(new.split())[:60]
+    db.run("UPDATE sites SET group_name = ? WHERE group_name = ?", new, old)
+    return back("/installningar", f"Gruppen {old} heter nu {new}." if new else f"Gruppen {old} är borttagen – sajterna ligger kvar utan grupp.")
 
 
 @app.post("/sajt/{site_id}/underhall")

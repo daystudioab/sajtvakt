@@ -65,6 +65,8 @@ Första backupen tas direkt. Från natten därpå körs backup och uppdateringar
 - **Skärmdumpar.** Efter nattens körning fotograferar servern varje startsida (med en inbyggd webbläsare). Före och efter en uppdatering jämförs bilderna; har mer än en fjärdedel av sidan ändrats fast den svarar normalt, visas en varning i översikten. Ingenting återställs då automatiskt – det kan vara ett bildspel som bytt bild.
 - **Kvittera varningar.** Varningar visas i rutan överst i översikten tills du kvitterar dem.
 - **Underhållsläge.** Har en sajt en underhållssida (503) med flit, slå på Underhållsläge på sajtens sida (eller klicka "Det är underhållsläge" i den röda rutan). Då larmar Sajtvakt bara om sajten slutar svara helt eller visar fel, och backup och uppdateringar fortsätter.
+- **Grupper.** Ge sajter en grupp under Inställningar på sajtens sida (till exempel en kund). Översikten visar sajterna gruppvis med en samlad status per grupp. Byt namn på eller ta bort grupper under Inställningar.
+- **SSL** kontrolleras varje natt och du får mejl om ett certifikat håller på att gå ut, men det visas inte i panelen.
 - **Låsta tillägg.** Ett tillägg som har kraschat en sajt låses så att Sajtvakt inte provar igen varje natt. Lås upp det på sajtens sida när en rättad version finns.
 - **WordPress själv** uppdateras automatiskt varje natt, även större versioner. Före uppdateringen sparas en kopia av WordPress filer (och backupen tas), så går sajten sönder läggs den gamla versionen tillbaka direkt och uppdateringen låses tills du låser upp den.
 - **Avinstallera** tillägg och teman från sajtens sida i panelen. En kopia av filerna sparas först och kan läggas tillbaka under "Sparade kopior".

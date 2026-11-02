@@ -496,7 +496,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
                 err = SajtvaktError("still_broken", "Sajten fungerar inte efter återställningen.")
                 err.emailed = True
                 raise err
-            db.event(site_id, "warning", "Uppdateringen fick sajten att gå sönder – återställd", f"Återställd via {how}.")
+            db.event(site_id, "info", "Uppdateringen fick sajten att gå sönder – återställd", f"Återställd via {how}.")
 
             # Hitta den skyldige: ett i taget.
             if len(files_items) > 1:
@@ -532,7 +532,7 @@ def do_update(site_id: int, job_id: int | None = None, only: list[str] | None = 
                 err = SajtvaktError("still_broken", "Sajten fungerar inte efter WordPress-uppdateringen.")
                 err.emailed = True
                 raise err
-            db.event(site_id, "warning", "WordPress-uppdateringen fick sajten att gå sönder – återställd", f"Återställd via {how}.")
+            db.event(site_id, "info", "WordPress-uppdateringen fick sajten att gå sönder – återställd", f"Återställd via {how}.")
             rolled_back.extend(core_items)
 
     refresh_status(site_id, job_id, refresh=False)
