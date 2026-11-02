@@ -14,7 +14,7 @@
 {% block body %}
 <div class="shell">
   <aside class="side">
-    <a class="brand" href="/">{{ LOGO }} sajtvakt</a>
+    <a class="brand" href="/">{{ LOGO }} Sajtvakt</a>
     <nav aria-label="Huvudmeny">
       <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">{{ icon("sites") }}Översikt</a>
       <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">{{ icon("plugins") }}Tillägg</a>
