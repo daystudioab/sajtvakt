@@ -21,17 +21,17 @@
 {% endif %}
 
 <section class="kpis" aria-label="Nyckeltal">
-  <div class="kpi"><span class="orb {{ 'bad' if totals.down }}">{{ icon("status") }}</span><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
-  <div class="kpi"><span class="orb {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ icon("backup") }}</span><span class="l">Backup senaste dygnet</span><span class="n">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
-  <div class="kpi"><span class="orb">{{ icon("updates") }}</span><span class="l">Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></div>
-  <div class="kpi"><span class="orb">{{ icon("storage") }}</span><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></div>
+  <div class="kpi"><span class="l">Uppe</span><span class="n {{ 'bad' if totals.down else 'ok' if totals.sites }}">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span></div>
+  <div class="kpi"><span class="l">Backup senaste dygnet</span><span class="n {{ 'warn' if totals.sites and totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span></div>
+  <div class="kpi"><span class="l">Väntande uppdateringar</span><span class="n">{{ totals.updates }}</span></div>
+  <div class="kpi"><span class="l">Lagrat</span>{% set parts = (totals.stored | bytes).split(' ') %}<span class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span></div>
 </section>
 
 <div class="cols">
   <section class="main-col" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
     <div class="col-head">
-      <h2 id="sajter-h">Sajter <span class="muted" style="font-weight:600">{{ sites | length }}</span></h2>
-      {% if sites %}<div class="sorter well" role="group" aria-label="Sortera">Sortera <a href="/?sort=status" class="{{ 'on' if sort == 'status' }}">Status</a><a href="/?sort=namn" class="{{ 'on' if sort == 'namn' }}">Namn</a></div>{% endif %}
+      <h2 id="sajter-h">Sajter · {{ sites | length }}</h2>
+      {% if sites %}<div class="sorter" role="group" aria-label="Sortera">Sortera: <a href="/?sort=status" class="{{ 'on' if sort == 'status' }}">Status</a> · <a href="/?sort=namn" class="{{ 'on' if sort == 'namn' }}">Namn</a></div>{% endif %}
     </div>
     {% if not sites %}
     <div class="card empty">
@@ -40,29 +40,27 @@
       <a class="btn primary" href="/sajt/ny">Lägg till första sajten</a>
     </div>
     {% else %}
-    <div class="raised site-list">
+    <div class="sites-table">
+      <div class="th" aria-hidden="true"><span>Sajt</span><span>7 nätter</span><span>Status</span><span class="r">Backup</span></div>
       {% for g in groups %}
         {% if g.name %}
         <details class="group" data-group="{{ g.name }}" open>
-          <summary>
+          <summary class="group-row">
             {{ icon("chev", "chev") }}
             <span class="gname">{{ g.name }}</span>
             <span class="gcount">{{ g.meta }}</span>
-            <span class="gdots" aria-hidden="true">{% for m in g.sites %}<i class="{{ m.tone if m.tone in ('bad','warn','maint') }}"></i>{% endfor %}</span>
             <span class="pill {{ g.kind }}">{{ g.label }}</span>
           </summary>
         {% endif %}
         {% for s in g.sites %}{% set r = s.row %}
           <a class="site-row {{ s.tone }}" href="/sajt/{{ r.id }}">
-            <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="168" height="108">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
             <span class="who">
-              <span class="name">{{ r.name }}</span>
-              <span class="line"><span class="host">{{ r.url | host }}</span><span class="nights" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</span></span>
+              <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="128" height="80">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
+              <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
             </span>
-            <span class="end">
-              <span class="pill {{ s.kind }}">{{ s.label }}</span>
-              {% if s.meta %}<span class="meta">{{ s.meta }}</span>{% endif %}
-            </span>
+            <span class="nights" role="img" aria-label="{{ s.nights_label }}">{% for n in s.nights %}<i class="{{ n.kind }}" title="{{ n.title }}"></i>{% endfor %}</span>
+            <span class="pill {{ s.kind }}">{{ s.label }}</span>
+            <span class="meta">{{ s.meta | replace('Backup ', '') or '–' }}</span>
           </a>
         {% endfor %}
         {% if g.name %}</details>{% endif %}
@@ -72,46 +70,43 @@
   </section>
 
   <div class="side-col">
-    <section aria-labelledby="need-h" style="display:flex;flex-direction:column;gap:14px">
-      <div class="col-head"><h2 id="need-h">Behöver dig</h2>{% if needs %}<span class="pill {{ 'bad' if needs[0].kind == 'bad' else 'warn' }}">{{ needs | length }}</span>{% endif %}</div>
-      {% for n in needs[:4] %}
-      <div class="need {{ n.kind }}">
-        <div class="top">
-          <span class="ib {{ n.kind }}">{{ icon(n.icon) }}</span>
+    <section aria-labelledby="need-h" style="display:flex;flex-direction:column;gap:12px">
+      <h2 id="need-h">Behöver dig{% if needs %} · {{ needs | length }}{% endif %}</h2>
+      {% if needs %}
+      <div class="needs {{ 'bad' if needs[0].kind == 'bad' }}">
+      {% for n in needs[:5] %}
+        <div class="need {{ n.kind }}">
+          <span class="sq"></span>
           <span class="txt">
             <span class="t">{{ n.title }}</span>
             {% if n.site_name %}<span class="d">{{ n.site_name }}{% if n.detail %} · {{ n.detail | truncate(150) }}{% endif %}</span>{% elif n.detail %}<span class="d">{{ n.detail }}</span>{% endif %}
+            <span class="links">
+              {% if n.maint_button %}
+              <form method="post" action="/sajt/{{ n.site_id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="go">Det är underhållsläge</button></form>
+              {% endif %}
+              {% if n.site_id %}<a class="{{ '' if n.maint_button else 'go' }}" href="/sajt/{{ n.site_id }}">Visa sajten</a>{% endif %}
+              {% if n.ids %}
+              <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ n.ids | join(',') }}"><button title="Döljer varningen">Kvittera</button></form>
+              {% elif n.url %}<a href="{{ n.url }}" target="_blank" rel="noopener">Öppna sajten</a>{% endif %}
+            </span>
           </span>
           {% if n.when %}<span class="w">{{ n.when }}</span>{% endif %}
         </div>
-        <div class="btns">
-          {% if n.maint_button %}
-          <form method="post" action="/sajt/{{ n.site_id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="btn small primary {{ n.kind }}">Det är underhållsläge</button></form>
-          {% endif %}
-          {% if n.site_id %}<a class="btn small {{ 'line' if n.maint_button else 'primary ' ~ n.kind }}" href="/sajt/{{ n.site_id }}">Visa sajten</a>{% endif %}
-          {% if n.ids %}
-          <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ n.ids | join(',') }}"><button class="btn small line" title="Döljer varningen">Kvittera</button></form>
-          {% elif n.url %}<a class="btn small line" href="{{ n.url }}" target="_blank" rel="noopener">Öppna</a>{% endif %}
-        </div>
-      </div>
-      {% else %}
-      <div class="need calm">
-        <span class="ib ok">{{ icon("check") }}</span>
-        <span class="txt"><span class="t">Allt lugnt</span>
-          <span class="d">{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% elif night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }}{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}</span></span>
-      </div>
       {% endfor %}
-      {% if needs | length > 4 %}<a class="more-link" href="/handelser">+{{ needs | length - 4 }} till under Händelser</a>{% endif %}
+      </div>
+      {% if needs | length > 5 %}<a class="more-link" href="/handelser">+{{ needs | length - 5 }} till under Händelser</a>{% endif %}
+      {% else %}
+      <div class="needs calm"><div class="need calm"><span class="sq"></span><span class="txt"><span class="t">Allt lugnt</span>
+        <span class="d">{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% elif night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }}{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}</span></span></div></div>
+      {% endif %}
     </section>
 
     {% if log %}
-    <section aria-labelledby="logg-h" style="display:flex;flex-direction:column;gap:14px">
-      <div class="col-head"><h2 id="logg-h">Logg</h2><a class="more-link" href="/handelser">Alla</a></div>
-      <ul class="raised log">
+    <section aria-labelledby="logg-h" style="display:flex;flex-direction:column;gap:12px">
+      <div class="col-head"><h2 id="logg-h">Logg</h2><a class="more-link" href="/handelser">Alla händelser</a></div>
+      <ul class="log">
       {% for e in log %}
-        <li><span class="ib {{ {'ok':'ok','warning':'warn','error':'bad','info':'info'}.get(e.level, '') }}">{{ icon(LOG_ICONS.get(e.level, 'events')) }}</span>
-          <span class="txt"><span class="t">{{ e.title }}</span><span class="w">{{ e.created | when }}</span></span>
-          <span class="s">{{ e.site_name or 'Sajtvakt' }}</span></li>
+        <li><span class="sq {{ e.level }}"></span><span class="t">{{ e.title }} <span class="s">· {{ e.site_name or 'Sajtvakt' }}</span></span><span class="w">{{ e.created | when }}</span></li>
       {% endfor %}
       </ul>
     </section>
