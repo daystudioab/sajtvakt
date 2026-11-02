@@ -377,7 +377,7 @@ details.use summary::-webkit-details-marker { display: none; }
 /* ---- bakgrundsbild + glas (backdrop-blur) ---- */
 html { background: #07090a; }
 body { background: transparent; }
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #07090a url(bg.webp?v=5) center / cover no-repeat; pointer-events: none; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #07090a url(bg.webp?v=6) center / cover no-repeat; pointer-events: none; }
 .side { background: rgba(10, 12, 13, .45); border-right-color: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); }
 .side nav a.on { background: rgba(255, 255, 255, .06); }
 .group, .needs, .log, .card, .flash, .notice, .job {
