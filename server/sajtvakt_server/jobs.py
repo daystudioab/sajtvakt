@@ -38,6 +38,7 @@ JOB_NAMES = {
     "rollback": "Återställ uppdatering",
     "shot": "Skärmdump",
     "remove": "Avinstallation",
+    "security": "Säkerhetsskanning",
 }
 
 
@@ -190,6 +191,7 @@ def refresh_status(site_id: int, job_id: int | None = None, refresh: bool = True
     row = db.site(site_id)
     progress(job_id, "Hämtar status från sajten …")
     c = client(row)
+    old_sec = (status_of(row) or {}).get("security")
     st = c.status(refresh=refresh)
     try:
         st["_snapshots"] = c.request("snapshots").get("snapshots", [])[:10]
@@ -198,6 +200,7 @@ def refresh_status(site_id: int, job_id: int | None = None, refresh: bool = True
     # rescue_url väljs av check_safety_nets (den väg som faktiskt fungerar) – sätts här bara om den saknas.
     db.run("UPDATE sites SET status_json = ?, status_at = ?, last_error = NULL, rescue_url = COALESCE(rescue_url, ?) WHERE id = ?",
            json.dumps(st), int(time.time()), st.get("sajtvakt", {}).get("rescue"), site_id)
+    security_changed(site_id, old_sec, st.get("security"))
     return st
 
 
@@ -666,6 +669,107 @@ def do_push(backup_id: int, target_id: int, mode: str, job_id: int | None = None
     return {"message": "Klart", "home": res["result"].get("home"), "check": check}
 
 
+# ====================================================================== säkerhet (Wordfence)
+
+SEC_NAMES = {"critical": "kritisk", "high": "hög", "medium": "medel", "low": "låg"}
+
+
+def sec_pending(site_id: int) -> int:
+    """Tidpunkt då Sajtvakt startade en skanning som ännu inte är klar (0 = ingen)."""
+    return int(db.setting(f"sec_pending:{site_id}") or 0)
+
+
+# "Det finns en uppdatering" – det sköter Sajtvakt redan i natt, så det räknas inte som säkerhetsproblem.
+UPDATE_TYPES = {"wfUpgrade", "wfUpgradeError", "wfPluginUpgrade", "wfThemeUpgrade"}
+
+
+def real_issues(sec: dict | None) -> list[dict]:
+    return [i for i in ((sec or {}).get("issues") or {}).get("items", []) if i.get("type") not in UPDATE_TYPES]
+
+
+def _issue_ids(sec: dict | None) -> set[int]:
+    return {i["id"] for i in real_issues(sec)}
+
+
+def security_changed(site_id: int, old: dict | None, new: dict | None) -> None:
+    """Händelse + mejl när Wordfence hittar nya problem, och när de är åtgärdade."""
+    if not new or not new.get("active") or new.get("error"):
+        return
+    row = db.site(site_id)
+    items = real_issues(new)
+    added = [i for i in items if i["id"] not in _issue_ids(old)]
+    if added:
+        severe = any(i["severity"] in ("critical", "high") for i in added)
+        n = len(added)
+        title = f"Wordfence hittade {n} {'nytt problem' if n == 1 else 'nya problem'}"
+        lines = [f"– {i['title']} ({SEC_NAMES.get(i['severity'], i['severity'])})" for i in added[:8]]
+        if n > 8:
+            lines.append(f"… och {n - 8} till")
+        detail = "\n".join(lines)
+        db.event(site_id, "error" if severe else "warning", title, detail)
+        mailer.send(f"{'SÄKERHET' if severe else 'Säkerhet'} – {row['name']}",
+                    f"{title} på {row['url']}:\n\n{detail}\n\nSe detaljerna i Wordfence: {new.get('admin_url', row['url'])}\n"
+                    f"Sajten i Sajtvakt: {config.PUBLIC_URL}/sajt/{site_id}")
+    if old and old.get("active") and real_issues(old) and not items:
+        db.event(site_id, "ok", "Wordfence: inga problem kvar")
+    # Misslyckad skanning (ny sedan förra avläsningen).
+    scan, old_scan = new.get("scan") or {}, (old or {}).get("scan") or {}
+    if scan.get("result") not in (None, "ok") and scan.get("result") != old_scan.get("result") and not scan.get("running"):
+        db.event(site_id, "warning", "Wordfence-skanningen gick inte igenom", scan["result"][:300])
+
+
+def save_security(site_id: int, sec: dict) -> None:
+    row = db.site(site_id)
+    st = status_of(row) or {}
+    old = st.get("security")
+    st["security"] = sec
+    db.run("UPDATE sites SET status_json = ? WHERE id = ?", json.dumps(st), site_id)
+    security_changed(site_id, old, sec)
+
+
+def start_security_scan(site_id: int) -> dict:
+    """Ber Wordfence på sajten starta en skanning. Den kör sedan vidare där; schemaläggaren följer upp."""
+    row = db.site(site_id)
+    try:
+        res = client(row).request("security_scan", timeout=120)
+    except SajtvaktError as e:
+        if e.code == "unknown_op":
+            return {"started": False, "error": "Sajten behöver Sajtvakt-tillägget 0.4.0 – det uppdateras automatiskt i natt."}
+        raise
+    if res.get("security"):
+        save_security(site_id, res["security"])
+    if res.get("started") or res.get("running"):
+        db.set_setting(f"sec_pending:{site_id}", str(int(time.time())))
+    if res.get("started"):
+        db.event(site_id, "info", "Wordfence-skanning startad")
+    return res
+
+
+def poll_security(site_id: int) -> None:
+    """Följer upp en skanning Sajtvakt startat: läser av tills den är klar (högst 3 timmar)."""
+    started = sec_pending(site_id)
+    if not started:
+        return
+    row = db.site(site_id)
+    sec = client(row).request("security", timeout=60).get("security") or {}
+    save_security(site_id, sec)
+    running = (sec.get("scan") or {}).get("running")
+    if not running or time.time() - started > 3 * 3600:
+        db.set_setting(f"sec_pending:{site_id}", "0")
+        if not running and sec.get("active"):
+            if not real_issues(sec) and (sec.get("scan") or {}).get("result") == "ok":
+                db.event(site_id, "ok", "Wordfence-skanning klar – inga problem")
+
+
+def security_due_tonight() -> bool:
+    mode = db.setting("security_scan") or "weekly"
+    if mode == "daily":
+        return True
+    if mode == "weekly":
+        return datetime.now(config.TZ).weekday() == 0  # natten mot måndag
+    return False
+
+
 # ====================================================================== nightly & housekeeping
 
 def nightly(site_id: int, job_id: int | None = None) -> dict:
@@ -678,6 +782,15 @@ def nightly(site_id: int, job_id: int | None = None) -> dict:
     if not (out.get("update") or {}).get("shot"):
         progress(job_id, "Tar skärmdump av startsidan …")
         shots.take(site_id, row["url"])
+    sec = (status_of(db.site(site_id)) or {}).get("security") or {}
+    if security_due_tonight() and sec.get("active"):
+        progress(job_id, "Startar Wordfence-skanning …")
+        try:
+            r = start_security_scan(site_id)
+            out["security"] = "startad" if r.get("started") else (r.get("error") or r.get("message") or "pågår redan")
+        except Exception as e:  # Skanningen får aldrig fälla nattkörningen.
+            log.warning("Wordfence-skanning %s: %s", site_id, e)
+            out["security"] = f"kunde inte startas: {e}"
     return out
 
 

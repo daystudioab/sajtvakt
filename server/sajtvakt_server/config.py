@@ -24,6 +24,7 @@ DEFAULTS = {
     "retention_days": _env("RETENTION_DAYS", "30"),
     "alert_email": _env("ALERT_EMAIL", ""),
     "auto_update": "1",
+    "security_scan": "weekly",  # off | weekly | daily – Wordfence-skanning i nattkörningen
 }
 
 SMTP = {

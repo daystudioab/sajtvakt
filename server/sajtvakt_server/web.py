@@ -133,6 +133,9 @@ _ICON_PATHS = {
     "search": '<circle cx="7" cy="7" r="4.8"/><path d="m10.5 10.5 3.7 3.7"/>',
     "logout": '<path d="M6.5 2.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3M10.5 11l3-3-3-3M13.5 8H6"/>',
     "check": '<path d="m3 8.5 3 3 7-7"/>',
+    "shield": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/>',
+    "shield-ok": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/><path d="m5.6 8.1 1.7 1.7 3.2-3.3"/>',
+    "shield-alert": '<path d="M8 1.6 2.8 3.5v4.1c0 3.2 2.2 5.8 5.2 6.8 3-1 5.2-3.6 5.2-6.8V3.5Z"/><path d="M8 5.2v3.3M8 10.6v.1"/>',
     "warn": '<path d="M8 2.2 14.6 13.6H1.4Z"/><path d="M8 6.6v3M8 11.8v.1"/>',
     "down": '<circle cx="8" cy="8" r="6.2"/><path d="m5.8 5.8 4.4 4.4M10.2 5.8l-4.4 4.4"/>',
     "rollback": '<path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8"/><path d="M2.4 1.9v2.6H5"/>',
@@ -378,6 +381,41 @@ def _nights(row, backup_days: set, rolled_days: set, today, backup_hour: int, n:
 SEVERITY = {"bad": 0, "warn": 1, "busy": 2, "maint": 3, "ok": 4}
 
 
+def _sec_summary(st: dict | None, site_id: int) -> dict:
+    """Säkerhetsläget (Wordfence) som en kort etikett för listan: kind = ok | warn | bad | busy | none."""
+    def out(kind, label, title="", icon="shield"):
+        return {"kind": kind, "label": label, "title": title or label, "icon": icon}
+    if not st:
+        return out("none", "–", "Ingen status hämtad än")
+    sec = st.get("security")
+    if sec is None:
+        return out("none", "–", "Visas när sajten har Sajtvakt-tillägget 0.4.0 (uppdateras automatiskt i natt)")
+    if not sec.get("installed"):
+        return out("none", "Ingen Wordfence", "Wordfence är inte installerat")
+    if not sec.get("active"):
+        return out("warn", "Wordfence av", "Wordfence är installerat men inte aktiverat", "shield-alert")
+    if sec.get("error"):
+        return out("none", "Okänt", sec["error"])
+    scan = sec.get("scan") or {}
+    issues = jobs.real_issues(sec)
+    if scan.get("running"):
+        return out("busy", "Skannar …", "Wordfence skannar sajten just nu")
+    if issues:
+        severe = any(i["severity"] in ("critical", "high") for i in issues)
+        n = len(issues)
+        return out("bad" if severe else "warn", f"{n} problem",
+                   "; ".join(i["title"] for i in issues[:3]) + (" …" if n > 3 else ""), "shield-alert")
+    if not scan.get("last"):
+        return out("none", "Ej skannad", "Wordfence har inte skannat sajten än")
+    if scan.get("result") not in (None, "ok"):
+        return out("warn", "Skanning misslyckades", scan["result"], "shield-alert")
+    days = (time.time() - scan["last"]) / 86400
+    when = datetime.fromtimestamp(scan["last"], config.TZ)
+    if days > 8:
+        return out("warn", f"Ej skannad på {int(days)} d", f"Senaste skanningen {when:%Y-%m-%d}", "shield-alert")
+    return out("ok", "Säker", f"Wordfence hittade inga problem vid senaste skanningen {when:%Y-%m-%d %H:%M}", "shield-ok")
+
+
 def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_hour=2) -> dict:
     st = jobs.status_of(row)
     n_updates = 0
@@ -387,7 +425,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     running = db.one("SELECT * FROM jobs WHERE site_id=? AND status IN ('queued','running') ORDER BY id DESC LIMIT 1", row["id"])
     locked = len(json.loads(row["skip_plugins"] or "[]"))
     out = {"row": row, "st": st, "updates": n_updates, "job": running, "locked": locked,
-           "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"])}
+           "shot": shots.url_for(row["id"]), "shot_at": shots.taken_at(row["id"]), "sec": _sec_summary(st, row["id"])}
     if today is None:
         return out
     nights = _nights(row, backup_days or set(), rolled_days or set(), today, backup_hour, n=7)
@@ -433,7 +471,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
 def _group_summary(name: str, members: list[dict]) -> dict:
     """Samlad status för en grupp: det sämsta läget bland sajterna bestämmer."""
     bad = sum(1 for m in members if m["tone"] == "bad")
-    warn = sum(1 for m in members if m["tone"] == "warn")
+    warn = sum(1 for m in members if m["tone"] == "warn" or (m["tone"] != "bad" and m["sec"]["kind"] in ("warn", "bad")))
     maint = sum(1 for m in members if m["tone"] == "maint")
     updates = sum(m["updates"] for m in members)
     if bad:
@@ -615,7 +653,10 @@ def site_page(request: Request, site_id: int):
         skip_names[t["slug"]] = t["name"]
     fore_at = shots.taken_at(site_id, "fore")
     show_fore = bool(fore_at and time.time() - fore_at < 14 * 86400)
-    return render(request, "site.html", site=row, st=st, backups=backups, events=events, running=running,
+    sec = (st or {}).get("security")
+    return render(request, "site.html", site=row, st=st, sec=sec, sec_sum=_sec_summary(st, site_id),
+                  sec_issues=jobs.real_issues(sec), sec_updates=len(((sec or {}).get("issues") or {}).get("items", [])) - len(jobs.real_issues(sec)),
+                  sec_pending=jobs.sec_pending(site_id), sec_mode=db.setting("security_scan") or "weekly", backups=backups, events=events, running=running,
                   recent_jobs=recent_jobs, others=others, skip=skip, pending=pending, notes=notes, skip_names=skip_names,
                   shot=shots.url_for(site_id), shot_at=shots.taken_at(site_id), shots_on=shots.available(),
                   fore=shots.url_for(site_id, "fore") if show_fore else None, fore_at=fore_at)
@@ -665,6 +706,41 @@ def site_rollback(request: Request, site_id: int, csrf_token: str = Form(""), sn
     csrf(request, csrf_token)
     _site_or_404(site_id)
     return _start(site_id, "rollback", lambda j: jobs.do_manual_rollback(site_id, snapshot, j), "Återställer …")
+
+
+@app.post("/sajt/{site_id}/sakerhet")
+def site_security_scan(request: Request, site_id: int, csrf_token: str = Form("")):
+    csrf(request, csrf_token)
+    row = _site_or_404(site_id)
+    sec = (jobs.status_of(row) or {}).get("security")
+    if sec is None:
+        return back(f"/sajt/{site_id}", "Sajten behöver Sajtvakt-tillägget 0.4.0 för säkerhetsskanning. "
+                    "Det uppdateras automatiskt i natt – eller klicka Hämta status och sedan Uppdatera på raden Sajtvakt.", bad=True)
+    if not sec.get("active"):
+        return back(f"/sajt/{site_id}", "Wordfence är inte installerat och aktiverat på sajten.", bad=True)
+    return _start(site_id, "security", lambda j: _scan_job(site_id),
+                  "Startar Wordfence-skanning … Resultatet visas här när den är klar, oftast inom 5–20 minuter.")
+
+
+def _scan_job(site_id: int) -> dict:
+    r = jobs.start_security_scan(site_id)
+    if r.get("error"):
+        raise RuntimeError(r["error"])
+    return {"message": "Skanning startad" if r.get("started") else (r.get("message") or "En skanning pågår redan")}
+
+
+@app.post("/sakerhet/skanna-alla")
+def security_scan_all(request: Request, csrf_token: str = Form("")):
+    csrf(request, csrf_token)
+    n = 0
+    for row in db.sites():
+        sec = (jobs.status_of(row) or {}).get("security") or {}
+        if sec.get("active") and not jobs.busy(row["id"]):
+            jobs.submit("security", row["id"], lambda j, sid=row["id"]: _scan_job(sid))
+            n += 1
+    if not n:
+        return back("/installningar", "Ingen sajt med aktivt Wordfence (och Sajtvakt 0.4.0) att skanna just nu.", bad=True)
+    return back("/installningar", f"Startar Wordfence-skanning på {n} {'sajt' if n == 1 else 'sajter'}. Resultaten dyker upp i översikten.")
 
 
 def _version_at_least(have: str, need: str) -> bool:
@@ -849,18 +925,19 @@ def job_status(request: Request, job_id: int):
 def settings_page(request: Request):
     auth(request)
     return render(request, "settings.html",
-                  s={k: db.setting(k) for k in ("backup_hour", "retention_days", "alert_email", "auto_update")},
+                  s={k: db.setting(k) for k in ("backup_hour", "retention_days", "alert_email", "auto_update", "security_scan")},
                   smtp=mailer.smtp(), smtp_in_panel=bool(db.setting("smtp_host")), usage=store.usage(), tz=str(config.TZ))
 
 
 @app.post("/installningar")
 def settings_save(request: Request, csrf_token: str = Form(""), backup_hour: int = Form(2), retention_days: int = Form(30),
-                  alert_email: str = Form(""), auto_update: str = Form("0")):
+                  alert_email: str = Form(""), auto_update: str = Form("0"), security_scan: str = Form("weekly")):
     csrf(request, csrf_token)
     db.set_setting("backup_hour", str(max(0, min(23, backup_hour))))
     db.set_setting("retention_days", str(max(3, min(365, retention_days))))
     db.set_setting("alert_email", alert_email.strip())
     db.set_setting("auto_update", "1" if auto_update == "1" else "0")
+    db.set_setting("security_scan", security_scan if security_scan in ("off", "weekly", "daily") else "weekly")
     return back("/installningar", "Inställningarna är sparade.")
 
 

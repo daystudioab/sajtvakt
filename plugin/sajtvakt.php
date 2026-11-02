@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Sajtvakt
  * Description:       Backup, uppdateringar och återställning – styrs från din egen Sajtvakt-server.
- * Version:           0.3.1
+ * Version:           0.4.0
  * Plugin URI:        https://github.com/daystudioab/sajtvakt
  * Update URI:        https://github.com/daystudioab/sajtvakt
  * Requires at least: 6.0
@@ -18,6 +18,7 @@ define( 'SAJTVAKT_DIR', __DIR__ );
 
 require_once SAJTVAKT_DIR . '/includes/class-core.php';
 require_once SAJTVAKT_DIR . '/includes/class-status.php';
+require_once SAJTVAKT_DIR . '/includes/class-security.php';
 require_once SAJTVAKT_DIR . '/includes/class-backup.php';
 require_once SAJTVAKT_DIR . '/includes/class-snapshot.php';
 require_once SAJTVAKT_DIR . '/includes/class-updater.php';

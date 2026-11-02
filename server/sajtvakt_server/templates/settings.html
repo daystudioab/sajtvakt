@@ -16,11 +16,19 @@
       <div class="row"><input id="r" type="number" name="retention_days" min="3" max="365" value="{{ s.retention_days }}" style="width:110px"> <span class="muted">dagar</span></div>
       <div class="hint">Manuella backuper sparas i 90 dagar. Den senaste backupen av varje sajt raderas aldrig.</div>
       <label class="check" style="margin-top:16px"><input type="checkbox" name="auto_update" value="1" {{ 'checked' if s.auto_update == '1' }}> Automatiska uppdateringar efter nattens backup <span class="muted">(kan stängas av per sajt)</span></label>
+      <label for="sec">Säkerhetsskanning med Wordfence</label>
+      <select id="sec" name="security_scan">
+        <option value="weekly" {{ 'selected' if s.security_scan == 'weekly' }}>Varje vecka (natten mot måndag)</option>
+        <option value="daily" {{ 'selected' if s.security_scan == 'daily' }}>Varje natt</option>
+        <option value="off" {{ 'selected' if s.security_scan == 'off' }}>Av – bara när jag klickar Skanna nu</option>
+      </select>
+      <div class="hint">Startas efter nattens backup och uppdateringar, på sajter som har Wordfence. Wordfence skannar dessutom själv ungefär var tredje dag. Nya problem mejlas.</div>
       <label for="e">Skicka larm till</label>
       <input id="e" type="email" name="alert_email" value="{{ s.alert_email }}" placeholder="namn@exempel.se">
       <div class="hint">Mejl skickas när en sajt går ner, en backup misslyckas eller en uppdatering återställs.</div>
       <p style="margin-top:18px"><button class="btn primary">Spara</button></p>
     </form>
+    <form method="post" action="/sakerhet/skanna-alla" style="margin-top:6px"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn small">{{ icon("shield") }}Skanna alla sajter nu</button></form>
   </div></div>
 
   <div>

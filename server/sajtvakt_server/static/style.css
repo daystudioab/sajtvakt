@@ -426,3 +426,20 @@ form.search input[type=search] { -webkit-backdrop-filter: blur(18px); backdrop-f
 .log .sq.warning { background: var(--warn-dot); }
 .log .sq.error { background: var(--bad-dot); }
 .log .sq.info { background: var(--maint-dot); }
+
+/* ---- säkerhet (Wordfence) i sajtlistan ---- */
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 150px 150px 60px; }
+.sec { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--soft); white-space: nowrap; min-width: 0; }
+.sec .ic { width: 17px; height: 17px; flex: none; stroke-width: 1.6; color: var(--dim); }
+.sec .sl { overflow: hidden; text-overflow: ellipsis; }
+.sec.ok .ic { color: var(--ok-dot); }
+.sec.warn .ic { color: var(--warn-dot); }
+.sec.bad .ic { color: var(--bad-dot); }
+.sec.busy .ic { color: var(--maint-dot); }
+.sec.warn, .sec.bad { color: var(--ink); }
+.sec.none { color: var(--dim); }
+.btn .ic { width: 15px; height: 15px; flex: none; }
+@media (max-width: 760px) {
+  .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; }
+  .sec .sl { display: none; }
+}

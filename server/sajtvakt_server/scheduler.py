@@ -48,6 +48,19 @@ def tick() -> None:
 
     list(_monitor_pool.map(_monitor, due))
 
+    # Wordfence-skanningar som Sajtvakt startat: läs av var tredje minut tills de är klara.
+    def _poll(row):
+        try:
+            jobs.poll_security(row["id"])
+        except Exception as e:
+            log.warning("Säkerhetsavläsning %s: %s", row["url"], e)
+    polling = []
+    for r in db.sites():
+        if jobs.sec_pending(r["id"]) and now - int(db.setting(f"sec_poll:{r['id']}") or 0) >= 180:
+            db.set_setting(f"sec_poll:{r['id']}", str(now))
+            polling.append(r)
+    list(_monitor_pool.map(_poll, polling))
+
     for row in db.sites():
         sid = row["id"]
 

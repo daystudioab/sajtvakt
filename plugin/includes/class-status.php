@@ -112,6 +112,7 @@ final class Sajtvakt_Status {
 			),
 			'plugins'  => $plugins,
 			'themes'   => $themes,
+			'security' => Sajtvakt_Security::status(),
 			'environment' => array(
 				'can_update'         => ( 'direct' === $fs_method ),
 				'filesystem_method'  => $fs_method,

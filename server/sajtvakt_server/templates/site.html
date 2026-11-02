@@ -224,6 +224,43 @@
     </tbody></table>
   </div>
 
+  <!-- Säkerhet (Wordfence) -->
+  <div class="card section">
+    <div class="card-head"><h2>{{ icon("shield") }}Säkerhet</h2>
+      {% if sec and sec.active %}{% set scanning = sec.scan and sec.scan.running %}
+      <form method="post" action="/sajt/{{ site.id }}/sakerhet"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn small" {{ 'disabled' if busy or scanning }}>{{ 'Skannar …' if scanning else 'Skanna nu' }}</button></form>
+      {% endif %}
+    </div>
+    {% if sec is none %}
+    <div class="card-body muted small">Visas när sajten har Sajtvakt-tillägget 0.4.0 – det uppdateras automatiskt i natt.</div>
+    {% elif not sec.installed %}
+    <div class="card-body muted small">Wordfence är inte installerat. Installera och aktivera det på sajten, så läser Sajtvakt av skanningarna och kan starta nya.</div>
+    {% elif not sec.active %}
+    <div class="card-body"><span class="badge warn">Wordfence är installerat men inte aktiverat</span></div>
+    {% else %}
+    <table><tbody>
+      <tr><td class="muted">Läge</td><td class="r"><span class="badge {{ sec_sum.kind if sec_sum.kind in ('ok', 'warn', 'bad') }}" title="{{ sec_sum.title }}">{{ sec_sum.label }}</span></td></tr>
+      <tr><td class="muted">Senaste skanning</td><td class="r">{{ (sec.scan.last | when) if sec.scan and sec.scan.last else 'aldrig' }}</td></tr>
+      {% if sec.firewall %}<tr><td class="muted">Brandvägg</td><td class="r">{% set fw = sec.firewall.mode %}<span class="badge {{ 'ok' if fw == 'enabled' else 'warn' if fw == 'disabled' else '' }}">{{ {'enabled': 'På', 'learning-mode': 'Inlärningsläge', 'disabled': 'Av'}.get(fw, fw) }}</span></td></tr>{% endif %}
+      <tr><td class="muted">Schemalagd skanning</td><td class="r">{{ {'daily': 'Varje natt', 'weekly': 'Natten mot måndag', 'off': 'Av'}.get(sec_mode, sec_mode) }}</td></tr>
+    </tbody></table>
+    {% if sec_issues %}
+    <div class="card-body" style="padding-top:14px">
+      <ul class="events">
+      {% for i in sec_issues[:10] %}
+        <li><span class="lv {{ 'error' if i.severity in ('critical', 'high') else 'warning' }}"></span><div><div class="title">{{ i.title }}</div><div class="when">{{ {'critical': 'Kritisk', 'high': 'Hög', 'medium': 'Medel', 'low': 'Låg'}.get(i.severity, i.severity) }} · {{ i.time | when }}</div></div></li>
+      {% endfor %}
+      </ul>
+      {% if sec_issues | length > 10 %}<div class="hint">+{{ sec_issues | length - 10 }} till i Wordfence.</div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="card-body small" style="padding-top:{{ '0' if sec_issues else '14px' }}">
+      {% if sec_updates %}<div class="muted" style="margin-bottom:6px">Wordfence påpekar också {{ sec_updates }} {{ 'uppdatering' if sec_updates == 1 else 'uppdateringar' }} – dem sköter Sajtvakt.</div>{% endif %}
+      <a href="{{ sec.admin_url }}" target="_blank" rel="noopener">Öppna Wordfence på sajten</a> <span class="muted">· version {{ sec.version or '?' }}</span>
+    </div>
+    {% endif %}
+  </div>
+
   <!-- Händelser -->
   <div class="card section">
     <div class="card-head"><h2>{{ icon("events") }}Händelser</h2></div>

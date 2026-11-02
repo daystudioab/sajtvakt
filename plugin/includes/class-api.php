@@ -77,6 +77,14 @@ final class Sajtvakt_Api {
 				$out['sajtvakt']['rescue_alt']    = is_file( Sajtvakt_Plugin::rescue_stub_path() ) ? site_url( '/' . Sajtvakt_Plugin::RESCUE_STUB ) : null;
 				break;
 
+			case 'security':
+				$out = array( 'ok' => true, 'security' => Sajtvakt_Security::status() );
+				break;
+			case 'security_scan':
+				$out = Sajtvakt_Security::scan();
+				$out['security'] = Sajtvakt_Security::status();
+				break;
+
 			case 'backup_start':
 				$out = Sajtvakt_Backup::start( $params );
 				break;
