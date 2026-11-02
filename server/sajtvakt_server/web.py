@@ -411,7 +411,8 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     elif stale or (never and now - row["added"] > 3600):
         tone, label, kind = "warn", "Backup saknas", "warn"
     elif n_updates:
-        tone, label, kind = "ok", f"{n_updates} uppd.", ""
+        # Väntande uppdateringar: gul cirkel, men räknas inte som att sajten behöver dig.
+        tone, label, kind = "ok", f"{n_updates} uppd.", "warn"
     elif st:
         tone, label, kind = "ok", "Aktuell", "ok"
     else:
