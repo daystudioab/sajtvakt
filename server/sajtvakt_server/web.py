@@ -111,7 +111,7 @@ templates.env.globals["SHIELD"] = Markup(
 )
 templates.env.globals["LOGO"] = Markup(
     '<svg viewBox="0 0 26 26" fill="none" aria-hidden="true"><defs><linearGradient id="svlg" x1="0" y1="0" x2="1" y2="1">'
-    '<stop offset="0" stop-color="#272c42"/><stop offset="1" stop-color="#12141e"/></linearGradient></defs>'
+    '<stop offset="0" stop-color="#3a4160"/><stop offset="1" stop-color="#232838"/></linearGradient></defs>'
     '<rect width="26" height="26" rx="8" fill="url(#svlg)"/>'
     '<path d="M5.5 13.5h3.5l2-4.5 3.5 8 2-4h4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
