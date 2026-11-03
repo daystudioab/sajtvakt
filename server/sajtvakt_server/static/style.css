@@ -382,3 +382,18 @@ td.cb input { width: 16px; height: 16px; accent-color: var(--red); cursor: point
 .tile .ico { color: var(--fg-2); }
 .check input, td.cb input { color-scheme: dark; }
 select option { background: var(--card); color: var(--fg); }
+
+/* ---- sajtraderna: status utan fält, större prick och större ikoner ---- */
+.site-row .pill { background: none; border: 0; padding: 0; gap: 9px; font-size: 13px; color: var(--fg-2); }
+.site-row .pill::before { width: 10px; height: 10px; }
+.site-row .pill.ok::before { background: var(--green); }
+.site-row .pill.warn::before { background: var(--amber); }
+.site-row .pill.bad::before { background: var(--red); }
+.site-row .pill.maint::before, .site-row .pill.info::before { background: var(--violet); }
+.site-row .pill.none::before { background: var(--faint); }
+.site-row .pill.warn, .site-row .pill.bad { color: var(--fg); }
+.site-row .sec { gap: 8px; font-size: 13px; }
+.site-row .sec .ic { width: 19px; height: 19px; stroke-width: 1.8; }
+@media (max-width: 860px) { .site-row .pill { font-size: 0; gap: 0; padding: 0; } }
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 140px 140px 116px 100px; }
+@media (max-width: 860px) { .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; } }
