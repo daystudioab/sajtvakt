@@ -429,3 +429,6 @@ select option { background: var(--card); color: var(--fg); }
 .site-row .sec.none { color: var(--faint); }
 .site-row .sec.none .ic { color: var(--faint); }
 .site-row .sec.st .ic { width: 24px; height: 24px; }
+
+/* ---- texten efter ikonerna på sajtraderna: vit ---- */
+.site-row .sec, .site-row .sec.ok, .site-row .sec.warn, .site-row .sec.bad, .site-row .sec.busy, .site-row .sec.none { color: var(--fg); }
