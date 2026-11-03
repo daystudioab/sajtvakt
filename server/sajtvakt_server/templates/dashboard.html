@@ -58,9 +58,8 @@
       <details class="group" data-group="{{ g.name }}" open>
         <summary class="group-row">
           <span class="gname">{{ g.name }}</span>
-          <span class="gcount">{{ g.meta }}</span>
           <span class="spacer"></span>
-          <span class="pill {{ g.kind }}">{{ g.label }}</span>
+          <span class="gpulse {{ g.kind or 'none' }}" title="{{ g.label }}"><span class="sr">{{ g.label }}</span></span>
           {{ icon("chev", "chev") }}
         </summary>
       {% else %}
