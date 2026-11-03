@@ -403,3 +403,13 @@ select option { background: var(--card); color: var(--fg); }
 .site-row .pill::before { width: 13px; height: 13px; }
 .site-row .sec { gap: 9px; }
 .site-row .sec .ic { width: 23px; height: 23px; stroke-width: 1.7; }
+
+/* ---- större prick och ikoner, kolumnerna längre till vänster ---- */
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 175px 170px 140px 130px; gap: 16px; }
+.site-row { padding-right: 28px; }
+.th { padding-right: 28px; }
+.site-row .pill { gap: 11px; }
+.site-row .pill::before { width: 15px; height: 15px; }
+.site-row .sec { gap: 10px; }
+.site-row .sec .ic { width: 26px; height: 26px; stroke-width: 1.6; }
+@media (max-width: 860px) { .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 10px; } .site-row { padding-right: 16px; } }
