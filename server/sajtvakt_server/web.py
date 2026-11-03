@@ -534,8 +534,6 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     # Läge (färg) och etikett. SSL följs i bakgrunden och mejlas, men visas inte här.
     if row["up"] == 0 and not in_maint:
         tone, label, kind, sicon = "bad", "Nere", "bad", "st-down"
-    elif in_maint:
-        tone, label, kind, sicon = "maint", "Underhållsläge", "maint", "maint"
     elif running:
         tone, label, kind, sicon = "busy", f"{jobs.JOB_NAMES.get(running['kind'], running['kind'])} pågår", "info", "st-busy"
     elif locked:
@@ -549,7 +547,8 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         tone, label, kind, sicon = "ok", "Uppdaterad", "ok", "st-check"
     else:
         tone, label, kind, sicon = "ok", "Väntar på status", "", "st-wait"
-    out.update(tone=tone, label=label, kind=kind, sicon=sicon, severity=SEVERITY[tone])
+    # Underhållsläge visas som en lila notering framför statusen – statusen i sig gäller som vanligt.
+    out.update(tone=tone, label=label, kind=kind, sicon=sicon, severity=SEVERITY[tone], maint=bool(row["maintenance"]))
     parts = []
     if row["last_backup"]:
         lb = datetime.fromtimestamp(row["last_backup"], config.TZ)
@@ -566,7 +565,7 @@ def _group_summary(name: str, members: list[dict]) -> dict:
     """Samlad status för en grupp: det sämsta läget bland sajterna bestämmer."""
     bad = sum(1 for m in members if m["tone"] == "bad")
     warn = sum(1 for m in members if m["tone"] == "warn" or (m["tone"] != "bad" and m["sec"]["kind"] in ("warn", "bad")))
-    maint = sum(1 for m in members if m["tone"] == "maint")
+    maint = sum(1 for m in members if m.get("maint"))
     updates = sum(m["updates"] for m in members)
     if bad:
         label, kind = (f"{bad} nere", "bad")

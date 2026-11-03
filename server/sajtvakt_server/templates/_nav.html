@@ -1,0 +1,6 @@
+<nav class="mainnav" aria-label="Huvudmeny">
+  <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">Översikt</a>
+  <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">Tillägg</a>
+  <a href="/handelser" class="{{ 'on' if request.url.path == '/handelser' }}">Händelser{% if side.attention %}<span class="count" aria-label="{{ side.attention }} att titta på">{{ side.attention }}</span>{% endif %}</a>
+  <a href="/installningar" class="{{ 'on' if request.url.path == '/installningar' }}">Inställningar</a>
+</nav>
