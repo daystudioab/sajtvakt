@@ -488,3 +488,90 @@ select option { background: var(--card); color: var(--fg); }
 .mnote .ic { width: 13px; height: 13px; stroke-width: 2; }
 .th, .site-row { grid-template-columns: minmax(0, 1fr) 250px 165px 135px 125px; }
 @media (max-width: 860px) { .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; } .mnote { font-size: 0; gap: 0; padding: 3px; } }
+
+/* ---- underhållsläge: en fylld lila ikon till vänster om statuskolumnen ---- */
+.th, .site-row { grid-template-columns: minmax(0, 1fr) 175px 170px 140px 130px; }
+.stcell { position: relative; display: flex; align-items: center; min-width: 0; }
+.mnote { position: absolute; left: -36px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: var(--violet); color: #fff; box-shadow: 0 0 0 3px var(--violet-soft); }
+.mnote .ic { width: 13px; height: 13px; stroke-width: 2.2; }
+@media (max-width: 860px) { .mnote { position: static; transform: none; width: 18px; height: 18px; display: inline-grid; margin-right: 6px; box-shadow: none; } .mnote .ic { width: 11px; height: 11px; } .stcell { display: inline-flex; align-items: center; } }
+
+/* =====================================================================
+   Rörelse – subtil och snabb. Kurvor från animate-riktlinjerna.
+   ===================================================================== */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Knappar: direkt tryckkänsla (feedback). */
+.btn, .seg a, .mainnav a, .linkbtn { transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease, border-color 150ms ease; }
+.btn:active:not([disabled]), .mainnav a:active { transform: scale(0.97); }
+
+/* Färger på länkar och rader: bara färgbyten, inget som flyttar sig (hovras tiotals gånger om dagen). */
+a, .chip, button.badge { transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease; }
+.site-row { transition: background-color 150ms ease; }
+.site-row .thumb img { transition: opacity 200ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .site-row:hover .thumb img { opacity: 1; }
+  .site-row:hover .name { color: #fff; }
+}
+
+/* Statusikonerna: en lätt "puff" när man pekar på raden – knappt märkbar. */
+.site-row .sec .ic { transition: transform 200ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .site-row:hover .sec .ic { transform: scale(1.06); }
+}
+
+/* Gruppen fälls ihop och ut mjukt (där webbläsaren stöder ::details-content). */
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  details.group::details-content {
+    height: 0; overflow: clip; opacity: 0;
+    transition: height 220ms var(--ease-out), opacity 180ms ease, content-visibility 220ms allow-discrete;
+  }
+  details.group[open]::details-content { height: auto; opacity: 1; }
+}
+.group-row .chev { transition: transform 220ms var(--ease-out); }
+.group > summary { transition: background-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .group > summary:hover { background: #20242e; } }
+
+/* Alternativrutan (backup) växer fram ur knappen den öppnas från. */
+details.use[open] .push-box {
+  transform-origin: top right;
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+  @starting-style { opacity: 0; transform: scale(0.96) translateY(-4px); }
+}
+
+/* Meddelanden och jobbrutan glider in när de dyker upp. */
+.flash, .job {
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Lagringsstapeln fylls från vänster vid första besöket. */
+.store .st-bar i { transform-origin: left center; }
+.intro .store .st-bar i { animation: sv-fill 600ms var(--ease-out) 150ms both; }
+.intro .store .st-bar .st-ot { animation-delay: 230ms; }
+@keyframes sv-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Entré vid första sidvisningen: korten glider upp med kort förskjutning (40 ms). */
+.intro .rise { animation: sv-rise 340ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms + 30ms); }
+.intro .topbar { animation: sv-fade 300ms ease both; }
+.intro .sites .th { animation: sv-fade 300ms ease 110ms both; }
+@keyframes sv-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes sv-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Den aktiva menypunkten får en mjuk övergång när man byter sida. */
+.mainnav a.on { transition: background-color 200ms ease, color 200ms ease; }
+
+/* Minskad rörelse: behåll toningar, ta bort förflyttningar och skalning. */
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not([disabled]), .mainnav a:active { transform: none; }
+  .site-row:hover .sec .ic { transform: none; }
+  .intro .rise { animation: sv-fade 200ms ease both; animation-delay: 0ms; }
+  .intro .store .st-bar i { animation: none; }
+  details.use[open] .push-box, .flash, .job { @starting-style { transform: none; } }
+  details.group::details-content { transition: opacity 150ms ease, content-visibility 150ms allow-discrete; height: auto; }
+}

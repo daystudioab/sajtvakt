@@ -14,13 +14,13 @@
 
 
 {% if not mail_ok %}
-<div class="banner"><span class="bi">{{ icon("mail") }}</span><div class="bt"><b>E-postlarm är inte påslagna än</b><span>Fyll i e-post under <a href="/installningar">Inställningar</a>, så får du veta direkt när något händer.</span></div></div>
+<div class="banner rise" style="--i: 0"><span class="bi">{{ icon("mail") }}</span><div class="bt"><b>E-postlarm är inte påslagna än</b><span>Fyll i e-post under <a href="/installningar">Inställningar</a>, så får du veta direkt när något händer.</span></div></div>
 {% endif %}
 
 {% if needs %}
 <section class="banners" aria-label="Behöver dig">
 {% for n in needs[:5] %}
-  <div class="banner {{ 'bad' if n.kind == 'bad' }}">
+  <div class="banner rise {{ 'bad' if n.kind == 'bad' }}" style="--i: {{ loop.index }}">
     <span class="bi">{{ icon("shield-alert" if n.kind == 'bad' else "warn") }}</span>
     <div class="bt">
       <b>{{ n.title }}</b>
@@ -44,7 +44,7 @@
 
 <section class="sites" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
   <h2 id="sajter-h" class="sr">Sajter</h2>
-  <div class="navrow">{% include "_nav.html" %}<span class="spacer"></span>{{ actions }}</div>
+  <div class="navrow rise" style="--i: 2">{% include "_nav.html" %}<span class="spacer"></span>{{ actions }}</div>
   {% if not sites %}
   <div class="card empty">
     <h2>Inga sajter ännu</h2>
@@ -56,7 +56,7 @@
   <div class="sites-table">
     {% for g in groups %}
       {% if g.name %}
-      <details class="group" data-group="{{ g.name }}" open>
+      <details class="group rise" data-group="{{ g.name }}" style="--i: {{ loop.index0 + 3 }}" open>
         <summary class="group-row">
           <span class="gpulse {{ g.kind or 'none' }}" title="{{ g.label }}"><span class="sr">{{ g.label }}</span></span>
           <span class="gname">{{ g.name }}</span>
@@ -64,7 +64,7 @@
           {{ icon("chev", "chev") }}
         </summary>
       {% else %}
-      <div class="group group-plain">
+      <div class="group group-plain rise" style="--i: {{ loop.index0 + 3 }}">
       {% endif %}
       {% for s in g.sites %}{% set r = s.row %}
         <a class="site-row {{ s.tone }} st-{{ s.kind or 'none' }}" href="/sajt/{{ r.id }}">
@@ -72,7 +72,7 @@
             <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="144" height="100">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
             <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
           </span>
-          <span class="stcell">{% if s.maint %}<span class="mnote" title="Underhållsläge – Sajtvakt larmar inte för underhållssidan">{{ icon("maint") }}Underhåll</span>{% endif %}<span class="sec st {{ {'ok': 'ok', 'warn': 'warn', 'bad': 'bad', 'maint': 'busy', 'info': 'busy'}.get(s.kind, 'none') }}">{{ icon(s.sicon) }}<span class="sl">{{ s.label }}</span></span></span>
+          <span class="stcell">{% if s.maint %}<span class="mnote" title="Underhållsläge – Sajtvakt larmar inte för underhållssidan">{{ icon("maint") }}<span class="sr">Underhållsläge</span></span>{% endif %}<span class="sec st {{ {'ok': 'ok', 'warn': 'warn', 'bad': 'bad', 'maint': 'busy', 'info': 'busy'}.get(s.kind, 'none') }}">{{ icon(s.sicon) }}<span class="sl">{{ s.label }}</span></span></span>
           <span class="sec {{ s.sec.kind }}" title="{{ s.sec.title }}">{{ icon(s.sec.icon) }}<span class="sl">{{ s.sec.label }}</span></span>
           <span class="sec bk {{ s.bk.kind }}" title="{{ s.bk.title }}">{{ icon(s.bk.icon) }}<span class="sl">{{ s.bk.label }}</span></span>
           <span class="sec cbx {{ s.cbx.kind }}" title="Crocoblock och CSS Hero: {{ s.cbx.title }}">{{ icon(s.cbx.icon) }}<span class="sl">{{ s.cbx.label }}</span></span>

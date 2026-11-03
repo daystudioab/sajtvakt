@@ -1,2 +1,2 @@
 """Sajtvakt – backup, uppdateringar och återställning för WordPress-sajter."""
-__version__ = "0.16.0"
+__version__ = "0.17.0"
