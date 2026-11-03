@@ -3,16 +3,16 @@
 {% block content %}
 <div class="head">
   <div>
-    <h1>{{ icon("sites") }}Översikt</h1>
+    <h1>Översikt</h1>
     <div class="sub">{{ now | longdate }} · {% if needs %}{{ needs | length }} {{ 'sak behöver' if needs | length == 1 else 'saker behöver' }} dig{% else %}allt lugnt{% endif %}</div>
   </div>
   <div class="actions">
     <form method="post" action="/uppdatera-alla" class="inline">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">
       <button class="btn go-all" {{ 'disabled' if not totals.updates }} title="{{ 'Uppdatera allt på alla sajter nu – en backup tas först' if totals.updates else 'Inget att uppdatera' }}"
-        data-confirm-btn="Uppdatera allt på alla sajter nu? En backup tas av varje sajt först, och det som går sönder återställs automatiskt.">{{ icon("updates") }}Uppdateringar{% if totals.updates %} ({{ totals.updates }}){% endif %}</button>
+        data-confirm-btn="Uppdatera allt på alla sajter nu? En backup tas av varje sajt först, och det som går sönder återställs automatiskt.">{{ icon("updates") }}Uppdateringar{% if totals.updates %} <span class="n">{{ totals.updates }}</span>{% endif %}</button>
     </form>
-    <a class="btn primary" href="/sajt/ny">+ Lägg till sajt</a>
+    <a class="btn primary" href="/sajt/ny">{{ icon("plus") }}Lägg till sajt</a>
   </div>
 </div>
 
@@ -20,6 +20,30 @@
 <div class="notice warn">E-postlarm är inte påslagna än. Fyll i e-post under <a href="/installningar">Inställningar</a>.</div>
 {% endif %}
 
+{% if needs %}
+<section class="needs {{ 'bad' if needs | selectattr('kind', 'equalto', 'bad') | list else 'warn' }}" aria-label="Behöver dig">
+{% for n in needs[:5] %}
+  <div class="need {{ n.kind }}">
+    <span class="sq"></span>
+    <span class="txt">
+      <span class="t">{{ n.title }}</span>
+      {% if n.site_name %}<span class="d">{{ n.site_name }}{% if n.detail %} · {{ n.detail | truncate(180) }}{% endif %}</span>{% elif n.detail %}<span class="d">{{ n.detail }}</span>{% endif %}
+      <span class="links">
+        {% if n.maint_button %}
+        <form method="post" action="/sajt/{{ n.site_id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="go">Det är underhållsläge</button></form>
+        {% endif %}
+        {% if n.site_id %}<a class="{{ '' if n.maint_button else 'go' }}" href="/sajt/{{ n.site_id }}">Visa sajten</a>{% endif %}
+        {% if n.ids %}
+        <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ n.ids | join(',') }}"><button title="Döljer varningen">Kvittera</button></form>
+        {% elif n.url %}<a href="{{ n.url }}" target="_blank" rel="noopener">Öppna sajten</a>{% endif %}
+      </span>
+    </span>
+    {% if n.when %}<span class="w">{{ n.when }}</span>{% endif %}
+  </div>
+{% endfor %}
+{% if needs | length > 5 %}<div class="need"><a class="more-link" href="/handelser">+{{ needs | length - 5 }} till under Händelser</a></div>{% endif %}
+</section>
+{% endif %}
 
 <div class="cols">
   <section class="main-col" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
@@ -44,11 +68,13 @@
             <span class="gcount">{{ g.meta }}</span>
             <span class="pill {{ g.kind }}">{{ g.label }}</span>
           </summary>
+        {% else %}
+        <div class="group group-plain">
         {% endif %}
         {% for s in g.sites %}{% set r = s.row %}
           <a class="site-row {{ s.tone }} st-{{ s.kind or 'none' }}" href="/sajt/{{ r.id }}">
             <span class="who">
-              <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="128" height="80">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
+              <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="80" height="56">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
               <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
             </span>
             <span class="pill {{ s.kind }}">{{ s.label }}</span>
@@ -57,52 +83,46 @@
             <span class="sec cbx {{ s.cbx.kind }}" title="Crocoblock och CSS Hero: {{ s.cbx.title }}">{{ icon(s.cbx.icon) }}<span class="sl">{{ s.cbx.label }}</span></span>
           </a>
         {% endfor %}
-        {% if g.name %}</details>{% endif %}
+        {% if g.name %}</details>{% else %}</div>{% endif %}
       {% endfor %}
     </div>
     {% endif %}
   </section>
 
   <div class="side-col">
-    <section class="need-sec" aria-label="{{ 'Behöver dig' if needs else 'Läget' }}" style="display:flex;flex-direction:column;gap:12px">
-      {% if needs %}
-      <div class="needs {{ 'bad' if needs | selectattr('kind', 'equalto', 'bad') | list else 'warn' }}">
-      {% for n in needs[:5] %}
-        <div class="need {{ n.kind }}">
-          <span class="sq"></span>
-          <span class="txt">
-            <span class="t">{{ n.title }}</span>
-            {% if n.site_name %}<span class="d">{{ n.site_name }}{% if n.detail %} · {{ n.detail | truncate(150) }}{% endif %}</span>{% elif n.detail %}<span class="d">{{ n.detail }}</span>{% endif %}
-            <span class="links">
-              {% if n.maint_button %}
-              <form method="post" action="/sajt/{{ n.site_id }}/underhall"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="on" value="1"><input type="hidden" name="to" value="oversikt"><button class="go">Det är underhållsläge</button></form>
-              {% endif %}
-              {% if n.site_id %}<a class="{{ '' if n.maint_button else 'go' }}" href="/sajt/{{ n.site_id }}">Visa sajten</a>{% endif %}
-              {% if n.ids %}
-              <form method="post" action="/handelser/kvittera"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="ids" value="{{ n.ids | join(',') }}"><button title="Döljer varningen">Kvittera</button></form>
-              {% elif n.url %}<a href="{{ n.url }}" target="_blank" rel="noopener">Öppna sajten</a>{% endif %}
-            </span>
-          </span>
-          {% if n.when %}<span class="w">{{ n.when }}</span>{% endif %}
-        </div>
-      {% endfor %}
+    {% if sites %}
+    <section aria-labelledby="lage-h">
+      <h2 id="lage-h" class="lbl">Sajter per läge</h2>
+      <div class="panel">
+        <div class="modebar" role="img" aria-label="{% for k, l, n in modes if n %}{{ n }} {{ l | lower }}{{ ', ' if not loop.last }}{% endfor %}">{% for k, l, n in modes if n %}<span class="m-{{ k }}" style="flex: {{ n }}"></span>{% endfor %}</div>
+        <ul class="modes">{% for k, l, n in modes %}<li><span class="mdot m-{{ k }}"></span>{{ l }}<b>{{ n }}</b></li>{% endfor %}</ul>
       </div>
-      {% if needs | length > 5 %}<a class="more-link" href="/handelser">+{{ needs | length - 5 }} till under Händelser</a>{% endif %}
-      {% else %}
-      <div class="needs calm"><div class="need calm"><span class="sq"></span><span class="txt"><span class="t">Allt lugnt</span>
-        <span class="d">{% if not sites %}Lägg till din första sajt så börjar Sajtvakt vakta den.{% elif night.backups %}Senaste natten: {{ night.backups }} {{ 'backup' if night.backups == 1 else 'backuper' }}{% if night.updated %}, {{ night.updated }} {{ 'uppdatering' if night.updated == 1 else 'uppdateringar' }}{% endif %}.{% else %}Första nattkörningen sker kl {{ '%02d' % backup_hour | int }}:00.{% endif %}</span></span></div></div>
-      {% endif %}
     </section>
 
-    <section class="stats" aria-label="Nyckeltal">
-      <div class="stat {{ 'bad' if totals.down }}"><span class="v">{{ totals.up }}<span class="of">/{{ totals.sites }}</span></span><span class="l">{{ icon("status") }}Uppe</span></div>
-      <div class="stat {{ 'warn' if totals.sites and totals.fresh < totals.sites }}"><span class="v">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></span><span class="l">{{ icon("backup") }}Backup i dag</span></div>
-      {% set parts = (totals.stored | bytes).split(' ') %}<div class="stat"><span class="v">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></span><span class="l">{{ icon("storage") }}Lagrat</span></div>
+    <section aria-labelledby="bk-h">
+      <h2 id="bk-h" class="lbl">Backup</h2>
+      <div class="panel bkpanel">
+        <div class="nums">
+          <div><div class="n {{ 'warn' if totals.fresh < totals.sites }}">{{ totals.fresh }}<span class="of">/{{ totals.sites }}</span></div>
+            <div class="cap">{% if nights.tonight is not none %}i natt · {{ nights.tonight }} min totalt{% else %}senaste dygnet{% endif %}</div></div>
+          {% set parts = (totals.stored | bytes).split(' ') %}
+          <div style="text-align:right"><div class="n">{{ parts[0] }}<span class="of"> {{ parts[1] }}</span></div><div class="cap">lagrat</div></div>
+        </div>
+        {% if nights.n >= 2 %}
+        <svg viewBox="0 0 240 44" preserveAspectRatio="none" role="img" aria-label="Nattens körtid senaste veckan, i minuter">
+          <polyline points="{{ nights.points }}" fill="none" stroke="#3dbb7e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="axis"><span>{{ nights.first }}</span><span>Körtid per natt, minuter</span><span>{{ nights.lastday }}</span></div>
+        {% else %}
+        <div class="cap">Kurvan över nattens körtid visas när det finns några nätter att jämföra.</div>
+        {% endif %}
+      </div>
     </section>
+    {% endif %}
 
     {% if log %}
-    <section aria-labelledby="logg-h" style="display:flex;flex-direction:column;gap:12px">
-      <div class="col-head"><h2 id="logg-h">Logg</h2><a class="more-link" href="/handelser">Alla händelser</a></div>
+    <section aria-labelledby="logg-h">
+      <div class="col-head"><h2 id="logg-h" class="lbl">Logg</h2><a class="more-link" href="/handelser">Alla</a></div>
       <ul class="log">
       {% for e in log %}
         <li><span class="sq {{ e.level }}"></span><span class="t">{{ e.title }} <span class="s">· {{ e.site_name or 'Sajtvakt' }}</span></span><span class="w">{{ e.created | when }}</span></li>

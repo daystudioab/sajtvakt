@@ -3,7 +3,7 @@
 {% block body %}
 <div class="login">
   <div class="card">
-    <div class="brand">{{ LOGO }} Sajtvakt</div>
+    <div class="brand">{{ LOGO }}<span class="bn"><b>Sajtvakt</b></span></div>
     {% if not configured %}
       <p>Inget lösenord är satt ännu.</p>
       <p class="muted small">Sätt <code>SAJTVAKT_ADMIN_PASSWORD</code> i <code>.env</code> på servern och starta om, logga sedan in här.</p>

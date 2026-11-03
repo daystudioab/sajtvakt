@@ -110,9 +110,8 @@ templates.env.globals["SHIELD"] = Markup(
     '<path d="m8.6 12.2 2.3 2.3 4.6-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 templates.env.globals["LOGO"] = Markup(
-    '<svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="2" width="34" height="34" rx="11" fill="currentColor" '
-    'opacity=".16"/><rect x="2" y="2" width="34" height="34" rx="11" stroke="currentColor" stroke-width="2"/>'
-    '<path d="M8 20h5l3-7 5 12 3-6h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    '<svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="2" width="34" height="34" rx="10" fill="#1f9d63"/>'
+    '<path d="M8 20h5l3-7 5 12 3-6h6" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 # Ikoner: Lucide (ISC-licens, lucide.dev) – 24 px rutnät, färgen ärvs (currentColor).
 _ICON_PATHS = {
@@ -282,8 +281,9 @@ def _side() -> dict:
     mins = int((nxt - now).total_seconds() // 60)
     disk = shutil.disk_usage(config.DATA_DIR)
     used = round(100 * (disk.total - disk.free) / disk.total) if disk.total else 0
-    return {"next_run": f"{nxt:%H:%M} · om {mins // 60} h {mins % 60:02d} m", "disk_pct": used,
-            "disk_warn": used >= 90, "mail_ok": mailer.configured(), "attention": len(_attention())}
+    return {"next_run": f"{nxt:%H:%M} · om {mins // 60} h {mins % 60:02d} m", "next_at": f"{nxt:%H:%M}", "disk_pct": used,
+            "disk_warn": used >= 90, "mail_ok": mailer.configured(), "attention": len(_attention()),
+            "sites": db.one("SELECT COUNT(*) AS n FROM sites")["n"]}
 
 
 def render(request: Request, template_name: str, **ctx):
@@ -642,7 +642,30 @@ def dashboard(request: Request, sort: str = "status"):
         "fresh": sum(1 for s in sites if s["row"]["last_backup"] and now - s["row"]["last_backup"] < 26 * 3600),
         "stored": jobs.stored_usage(),
     }
+    # Sajter per läge (samma färger som cirklarna i listan).
+    count = lambda k: sum(1 for s in sites if (s["kind"] or "none") == k)  # noqa: E731
+    modes = [("ok", "Uppdaterad", count("ok")), ("warn", "Varning", count("warn")), ("maint", "Underhåll", count("maint"))]
+    if count("info"):
+        modes.append(("info", "Jobb pågår", count("info")))
+    modes.append(("bad", "Nere", count("bad")))
+    if count("none"):
+        modes.append(("none", "Väntar på status", count("none")))
+    # Nattens körningar senaste veckan: hur lång tid hela körningen tog (första start till sista klar).
+    runs: dict = {}
+    for r in db.q("SELECT started, finished FROM jobs WHERE kind='nightly' AND status='done' AND started > ? AND finished IS NOT NULL",
+                  now - 8 * 86400):
+        d = day(r["started"])
+        lo, hi = runs.get(d, (r["started"], r["finished"]))
+        runs[d] = (min(lo, r["started"]), max(hi, r["finished"]))
+    week = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    mins = [round((runs[d][1] - runs[d][0]) / 60) if d in runs else None for d in week]
+    have = [m for m in mins if m is not None]
+    top = max(have) if have else 1
+    pts = [(i * 40, round(40 - (m / max(top, 1)) * 34 - 3, 1)) for i, m in enumerate(mins) if m is not None]
+    nights = {"points": " ".join(f"{x},{y}" for x, y in pts), "last": pts[-1] if pts else None,
+              "tonight": mins[-1], "first": DAYS[week[0].weekday()], "lastday": DAYS[week[-1].weekday()], "n": len(have)}
     return render(request, "dashboard.html", sites=sites, groups=groups, needs=needs, log=log, night=night,
+                  modes=modes, mode_total=max(len(sites), 1), nights=nights,
                   totals=totals, mail_ok=mailer.configured(), backup_hour=backup_hour, sort="namn" if by_name else "status",
                   any_busy=any(s["job"] for s in sites), shots_on=shots.available(), LOG_ICONS=LOG_ICONS)
 
