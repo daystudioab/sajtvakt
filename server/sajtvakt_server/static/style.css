@@ -397,3 +397,9 @@ select option { background: var(--card); color: var(--fg); }
 @media (max-width: 860px) { .site-row .pill { font-size: 0; gap: 0; padding: 0; } }
 .th, .site-row { grid-template-columns: minmax(0, 1fr) 140px 140px 116px 100px; }
 @media (max-width: 860px) { .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; } }
+
+/* ---- ännu större prick och ikoner på sajtraderna ---- */
+.site-row .pill { gap: 10px; }
+.site-row .pill::before { width: 13px; height: 13px; }
+.site-row .sec { gap: 9px; }
+.site-row .sec .ic { width: 23px; height: 23px; stroke-width: 1.7; }
