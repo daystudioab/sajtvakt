@@ -89,7 +89,7 @@
             <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="88" height="60">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
             <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
           </span>
-          <span class="pill {{ s.kind or 'none' }}">{{ s.label }}</span>
+          <span class="sec st {{ {'ok': 'ok', 'warn': 'warn', 'bad': 'bad', 'maint': 'busy', 'info': 'busy'}.get(s.kind, 'none') }}">{{ icon(s.sicon) }}<span class="sl">{{ s.label }}</span></span>
           <span class="sec {{ s.sec.kind }}" title="{{ s.sec.title }}">{{ icon(s.sec.icon) }}<span class="sl">{{ s.sec.label }}</span></span>
           <span class="sec bk {{ s.bk.kind }}" title="{{ s.bk.title }}">{{ icon(s.bk.icon) }}<span class="sl">{{ s.bk.label }}</span></span>
           <span class="sec cbx {{ s.cbx.kind }}" title="Crocoblock och CSS Hero: {{ s.cbx.title }}">{{ icon(s.cbx.icon) }}<span class="sl">{{ s.cbx.label }}</span></span>

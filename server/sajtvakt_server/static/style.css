@@ -420,3 +420,12 @@ select option { background: var(--card); color: var(--fg); }
 .site-row .pill.bad { color: var(--red); }
 .site-row .pill.maint, .site-row .pill.info { color: var(--violet); }
 .site-row .pill.none { color: var(--faint); }
+
+/* ---- statusikon i stället för prick, och texten i ikonens färg i alla kolumner ---- */
+.site-row .sec.ok { color: var(--green-ink); }
+.site-row .sec.warn { color: var(--amber-ink); }
+.site-row .sec.bad { color: var(--red-ink); }
+.site-row .sec.busy { color: var(--violet-ink); }
+.site-row .sec.none { color: var(--faint); }
+.site-row .sec.none .ic { color: var(--faint); }
+.site-row .sec.st .ic { width: 24px; height: 24px; }

@@ -143,6 +143,14 @@ _ICON_PATHS = {
     # Crocoblock-avveckling (Lucide package-check / package).
     "pkg-ok": '<path d="M12 22V12"/><path d="m16 17 2 2 4-4"/><path d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/>',
     "pkg": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
+    # Statusikoner i sajtlistan (Lucide).
+    "st-ok": '<circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/>',
+    "st-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    "st-down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    "st-lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    "st-upd": '<circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/>',
+    "st-busy": '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+    "st-wait": '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
     "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
     "warn": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     "down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
@@ -519,23 +527,23 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
     in_maint = bool(row["maintenance"]) and (row["up"] != 0 or row["last_code"] == 503)
     # Läge (färg) och etikett. SSL följs i bakgrunden och mejlas, men visas inte här.
     if row["up"] == 0 and not in_maint:
-        tone, label, kind = "bad", "Nere", "bad"
+        tone, label, kind, sicon = "bad", "Nere", "bad", "st-down"
     elif in_maint:
-        tone, label, kind = "maint", "Underhållsläge", "maint"
+        tone, label, kind, sicon = "maint", "Underhållsläge", "maint", "maint"
     elif running:
-        tone, label, kind = "busy", f"{jobs.JOB_NAMES.get(running['kind'], running['kind'])} pågår", "info"
+        tone, label, kind, sicon = "busy", f"{jobs.JOB_NAMES.get(running['kind'], running['kind'])} pågår", "info", "st-busy"
     elif locked:
-        tone, label, kind = "warn", f"{locked} låst", "warn"
+        tone, label, kind, sicon = "warn", f"{locked} låst", "warn", "st-lock"
     elif stale or (never and now - row["added"] > 3600):
-        tone, label, kind = "warn", "Backup saknas", "warn"
+        tone, label, kind, sicon = "warn", "Backup saknas", "warn", "st-alert"
     elif n_updates:
-        # Väntande uppdateringar: gul cirkel, men räknas inte som att sajten behöver dig.
-        tone, label, kind = "ok", f"{n_updates} uppd.", "warn"
+        # Väntande uppdateringar: gul, men räknas inte som att sajten behöver dig.
+        tone, label, kind, sicon = "ok", f"{n_updates} uppd.", "warn", "st-upd"
     elif st:
-        tone, label, kind = "ok", "Uppdaterad", "ok"
+        tone, label, kind, sicon = "ok", "Uppdaterad", "ok", "st-ok"
     else:
-        tone, label, kind = "ok", "Väntar på status", ""
-    out.update(tone=tone, label=label, kind=kind, severity=SEVERITY[tone])
+        tone, label, kind, sicon = "ok", "Väntar på status", "", "st-wait"
+    out.update(tone=tone, label=label, kind=kind, sicon=sicon, severity=SEVERITY[tone])
     parts = []
     if row["last_backup"]:
         lb = datetime.fromtimestamp(row["last_backup"], config.TZ)
