@@ -1,8 +1,8 @@
-/* Sajtvakt – ljust, lugnt (skiss X). Typsnitt lokalt (OFL): Sora rakt igenom. */
-@font-face { font-family: "Sora"; src: url(fonts/sora-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Sora"; src: url(fonts/sora-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Sora"; src: url(fonts/sora-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Sora"; src: url(fonts/sora-700.woff2) format("woff2"); font-weight: 700 800; font-display: swap; }
+/* Sajtvakt – ljust, lugnt (skiss X). Typsnitt lokalt (OFL): Space Grotesk rakt igenom. */
+@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url(fonts/space-grotesk-700.woff2) format("woff2"); font-weight: 700 800; font-display: swap; }
 
 :root {
   color-scheme: light;
@@ -32,8 +32,8 @@
   --none-dot: #c9c9c6;
   --shadow: 0 1px 2px rgba(16, 16, 14, .04);
   --r: 10px;
-  --font: "Sora", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --mono: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
