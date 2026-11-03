@@ -432,3 +432,17 @@ select option { background: var(--card); color: var(--fg); }
 
 /* ---- texten efter ikonerna på sajtraderna: vit ---- */
 .site-row .sec, .site-row .sec.ok, .site-row .sec.warn, .site-row .sec.bad, .site-row .sec.busy, .site-row .sec.none { color: var(--fg); }
+
+/* ---- lagrat i förhållande till serverns kapacitet (toppfältet, ingen ruta) ---- */
+.store { display: grid; gap: 5px; min-width: 170px; padding: 0 4px; }
+.store .st-l { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.store .st-l b { color: var(--fg); font-weight: 600; font-family: var(--num); }
+.store .st-bar { display: flex; height: 5px; border-radius: 999px; background: var(--line-strong); overflow: hidden; }
+.store .st-bar i { display: block; height: 100%; }
+.store .st-bk { background: var(--blue); }
+.store .st-ot { background: var(--faint); opacity: .55; }
+.store.warn .st-bk { background: var(--amber); }
+.store.warn .st-l b { color: var(--amber-ink); }
+@media (max-width: 1100px) { .store { display: none; } }
+@media (max-width: 1320px) { .topbar .today { display: none; } }
+.store { min-width: 150px; }

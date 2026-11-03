@@ -15,7 +15,6 @@
 <div class="shell">
   <header class="topbar">
     <a class="brand" href="/">{{ LOGO }}<span>Sajtvakt</span></a>
-    <span class="today">{{ now | longdate }}</span>
     <nav aria-label="Huvudmeny">
       <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">Översikt</a>
       <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">Tillägg</a>
@@ -26,7 +25,11 @@
     <div class="chips">
       <span class="chip"><span class="cdot {{ 'warn' if side.attention else 'ok' }}"></span>{{ 'Allt lugnt' if not side.attention else (side.attention ~ ' att titta på') }}</span>
       <span class="chip">Nästa körning {{ side.next_at }}</span>
-      <span class="chip {{ 'warn' if side.disk_warn or not side.mail_ok }}">Disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</span>
+      {% if not side.mail_ok %}<span class="chip warn">E-post av</span>{% endif %}
+    </div>
+    <div class="store {{ 'warn' if side.disk_warn }}" title="Backuper {{ side.stored | bytes }} · övrigt på servern {{ side.other_pct }} % · totalt {{ side.disk_total | bytes }} ({{ side.disk_pct }} % använt)">
+      <span class="st-l">Lagrat <b>{{ side.stored | bytes }}</b> av {{ side.disk_total | bytes }}</span>
+      <span class="st-bar" role="img" aria-label="{{ side.disk_pct }} procent av serverns disk används"><i class="st-bk" style="width: {{ side.stored_pct }}%"></i><i class="st-ot" style="width: {{ side.other_pct }}%"></i></span>
     </div>
     <form method="post" action="/logga-ut" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn ghost small" title="Logga ut">{{ icon("logout") }}<span class="sr">Logga ut</span></button></form>
   </header>

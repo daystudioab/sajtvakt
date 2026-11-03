@@ -15,15 +15,6 @@
   <a class="btn primary" href="/sajt/ny">{{ icon("plus") }}Lägg till sajt</a>
 </div>
 
-{% if sites %}
-<section class="tiles" aria-label="Nyckeltal">
-  <div class="tile {{ 'bad' if totals.down }}"><span class="t">Sajter uppe</span><span class="ico">{{ icon("status") }}</span><span class="v">{{ totals.up }}<small>/{{ totals.sites }}</small></span><span class="s">{{ tiles.up }}</span></div>
-  <div class="tile {{ 'warn' if totals.fresh < totals.sites }}"><span class="t">Backup i natt</span><span class="ico">{{ icon("db-ok") }}</span><span class="v">{{ totals.fresh }}<small>/{{ totals.sites }}</small></span><span class="s">{{ tiles.backup }}</span></div>
-  <div class="tile"><span class="t">Uppdateringar</span><span class="ico">{{ icon("updates") }}</span><span class="v">{{ totals.updates }}</span><span class="s">{{ tiles.updates }}</span></div>
-  {% set parts = (totals.stored | bytes).split(' ') %}
-  <div class="tile"><span class="t">Lagrat</span><span class="ico">{{ icon("storage") }}</span><span class="v">{{ parts[0] }}<small> {{ parts[1] }}</small></span><span class="s">{{ tiles.stored }}</span></div>
-</section>
-{% endif %}
 
 {% if not mail_ok %}
 <div class="banner"><span class="bi">{{ icon("mail") }}</span><div class="bt"><b>E-postlarm är inte påslagna än</b><span>Fyll i e-post under <a href="/installningar">Inställningar</a>, så får du veta direkt när något händer.</span></div></div>

@@ -291,7 +291,11 @@ def _side() -> dict:
     mins = int((nxt - now).total_seconds() // 60)
     disk = shutil.disk_usage(config.DATA_DIR)
     used = round(100 * (disk.total - disk.free) / disk.total) if disk.total else 0
+    stored = jobs.stored_usage()
+    other = max(0, (disk.total - disk.free) - stored)
+    pct = lambda n: round(100 * n / disk.total, 1) if disk.total else 0  # noqa: E731
     return {"next_run": f"{nxt:%H:%M} · om {mins // 60} h {mins % 60:02d} m", "next_at": f"{nxt:%H:%M}", "disk_pct": used,
+            "stored": stored, "disk_total": disk.total, "stored_pct": pct(stored), "other_pct": pct(other),
             "disk_warn": used >= 90, "mail_ok": mailer.configured(), "attention": len(_attention()),
             "sites": db.one("SELECT COUNT(*) AS n FROM sites")["n"]}
 
