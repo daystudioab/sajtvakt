@@ -413,3 +413,10 @@ select option { background: var(--card); color: var(--fg); }
 .site-row .sec { gap: 10px; }
 .site-row .sec .ic { width: 26px; height: 26px; stroke-width: 1.6; }
 @media (max-width: 860px) { .th, .site-row { grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 10px; } .site-row { padding-right: 16px; } }
+
+/* ---- statustexten i samma färg som pricken ---- */
+.site-row .pill.ok { color: var(--green); }
+.site-row .pill.warn { color: var(--amber); }
+.site-row .pill.bad { color: var(--red); }
+.site-row .pill.maint, .site-row .pill.info { color: var(--violet); }
+.site-row .pill.none { color: var(--faint); }
