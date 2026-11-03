@@ -48,9 +48,7 @@
 <section class="sites" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
   <div class="shead">
     <h2 id="sajter-h">Sajter</h2>
-    {% if sites %}<span class="hint">Klicka på en rad för att öppna sajten</span>{% endif %}
     <span class="spacer"></span>
-    {% if sites %}<div class="seg" role="group" aria-label="Sortera"><a href="/?sort=status" class="{{ 'on' if sort == 'status' }}">Status</a><a href="/?sort=namn" class="{{ 'on' if sort == 'namn' }}">Namn</a></div>{% endif %}
   </div>
   {% if not sites %}
   <div class="card empty">

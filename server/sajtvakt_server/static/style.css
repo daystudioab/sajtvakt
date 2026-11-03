@@ -446,3 +446,13 @@ select option { background: var(--card); color: var(--fg); }
 @media (max-width: 1100px) { .store { display: none; } }
 @media (max-width: 1320px) { .topbar .today { display: none; } }
 .store { min-width: 150px; }
+
+/* ---- toppfältet utan ram och bakgrund ---- */
+.topbar { background: none; border: 0; box-shadow: none; padding: 4px 0; }
+
+/* ---- sajtraderna: 1 px större text, 10 % större skärmdump ---- */
+.site-row .name { font-size: 15.5px; }
+.site-row .host { font-size: 13px; }
+.site-row .sec { font-size: 14px; }
+.thumb { width: 48px; height: 33px; }
+.thumb b { font-size: 13px; }
