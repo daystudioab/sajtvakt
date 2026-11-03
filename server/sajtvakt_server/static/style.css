@@ -456,3 +456,7 @@ select option { background: var(--card); color: var(--fg); }
 .site-row .sec { font-size: 14px; }
 .thumb { width: 48px; height: 33px; }
 .thumb b { font-size: 13px; }
+
+/* ---- större skärmdumpar på sajtraderna (+50 %) ---- */
+.thumb { width: 72px; height: 50px; border-radius: 8px; }
+.site-row .who { gap: 14px; }

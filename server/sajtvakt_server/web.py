@@ -144,6 +144,7 @@ _ICON_PATHS = {
     "pkg-ok": '<path d="M12 22V12"/><path d="m16 17 2 2 4-4"/><path d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 8.997 5.148"/>',
     "pkg": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
     # Statusikoner i sajtlistan (Lucide).
+    "st-circle": '<circle cx="12" cy="12" r="10"/>',
     "st-ok": '<circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/>',
     "st-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
     "st-down": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
@@ -544,7 +545,7 @@ def _site_summary(row, backup_days=None, rolled_days=None, today=None, backup_ho
         # Väntande uppdateringar: gul, men räknas inte som att sajten behöver dig.
         tone, label, kind, sicon = "ok", f"{n_updates} uppd.", "warn", "st-upd"
     elif st:
-        tone, label, kind, sicon = "ok", "Uppdaterad", "ok", "st-ok"
+        tone, label, kind, sicon = "ok", "Uppdaterad", "ok", "st-circle"
     else:
         tone, label, kind, sicon = "ok", "Väntar på status", "", "st-wait"
     out.update(tone=tone, label=label, kind=kind, sicon=sicon, severity=SEVERITY[tone])

@@ -22,11 +22,7 @@
       <a href="/installningar" class="{{ 'on' if request.url.path == '/installningar' }}">Inställningar</a>
     </nav>
     <span class="spacer"></span>
-    <div class="chips">
-      <span class="chip"><span class="cdot {{ 'warn' if side.attention else 'ok' }}"></span>{{ 'Allt lugnt' if not side.attention else (side.attention ~ ' att titta på') }}</span>
-      <span class="chip">Nästa körning {{ side.next_at }}</span>
-      {% if not side.mail_ok %}<span class="chip warn">E-post av</span>{% endif %}
-    </div>
+    {% if not side.mail_ok %}<div class="chips"><span class="chip warn">E-post av</span></div>{% endif %}
     <div class="store {{ 'warn' if side.disk_warn }}" title="Backuper {{ side.stored | bytes }} · övrigt på servern {{ side.other_pct }} % · totalt {{ side.disk_total | bytes }} ({{ side.disk_pct }} % använt)">
       <span class="st-l">Lagrat <b>{{ side.stored | bytes }}</b> av {{ side.disk_total | bytes }}</span>
       <span class="st-bar" role="img" aria-label="{{ side.disk_pct }} procent av serverns disk används"><i class="st-bk" style="width: {{ side.stored_pct }}%"></i><i class="st-ot" style="width: {{ side.other_pct }}%"></i></span>

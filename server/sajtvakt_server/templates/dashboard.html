@@ -2,10 +2,7 @@
 {% block title %}Översikt · Sajtvakt{% endblock %}
 {% block content %}
 <div class="pagehead">
-  <div>
-    <h1>Översikt</h1>
-    <div class="sub">{% if needs %}{{ needs | length }} {{ 'sak behöver' if needs | length == 1 else 'saker behöver' }} dig – resten sköter sig.{% else %}Allt lugnt – Sajtvakt sköter resten.{% endif %}</div>
-  </div>
+  <h1 class="sr">Översikt</h1>
   <span class="spacer"></span>
   <form method="post" action="/uppdatera-alla" class="inline">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
@@ -46,10 +43,7 @@
 {% endif %}
 
 <section class="sites" aria-labelledby="sajter-h" {{ 'data-refresh' if any_busy }}>
-  <div class="shead">
-    <h2 id="sajter-h">Sajter</h2>
-    <span class="spacer"></span>
-  </div>
+  <h2 id="sajter-h" class="sr">Sajter</h2>
   {% if not sites %}
   <div class="card empty">
     <h2>Inga sajter ännu</h2>
@@ -75,7 +69,7 @@
       {% for s in g.sites %}{% set r = s.row %}
         <a class="site-row {{ s.tone }} st-{{ s.kind or 'none' }}" href="/sajt/{{ r.id }}">
           <span class="who">
-            <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="88" height="60">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
+            <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="144" height="100">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
             <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
           </span>
           <span class="sec st {{ {'ok': 'ok', 'warn': 'warn', 'bad': 'bad', 'maint': 'busy', 'info': 'busy'}.get(s.kind, 'none') }}">{{ icon(s.sicon) }}<span class="sl">{{ s.label }}</span></span>
