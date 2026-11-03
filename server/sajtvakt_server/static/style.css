@@ -575,3 +575,19 @@ details.use[open] .push-box {
   details.use[open] .push-box, .flash, .job { @starting-style { transform: none; } }
   details.group::details-content { transition: opacity 150ms ease, content-visibility 150ms allow-discrete; height: auto; }
 }
+
+/* ---- underhåll: fylld skiftnyckel, ingen bakgrund ---- */
+.mnote { width: auto; height: auto; background: none; box-shadow: none; border-radius: 0; color: var(--violet); left: -30px; }
+.mnote .ic { width: 19px; height: 19px; fill: currentColor; stroke: currentColor; stroke-width: 1.2; }
+@media (max-width: 860px) { .mnote { background: none; } .mnote .ic { width: 15px; height: 15px; } }
+
+/* ---- tydligare entré: varje sidvisning (inte automatiska omladdningar) ---- */
+.intro .rise { animation: sv-rise 460ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms + 40ms); }
+.intro .site-row { animation: sv-row 420ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms + var(--j, 0) * 45ms + 160ms); }
+.intro main > .head, .intro main > .card, .intro main > .grid, .intro main > .section, .intro .navrow:not(.rise) { animation: sv-rise 460ms var(--ease-out) both; }
+.intro main > .grid, .intro main > .card { animation-delay: 80ms; }
+@keyframes sv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes sv-row { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .intro .rise, .intro .site-row, .intro main > .head, .intro main > .card, .intro main > .grid, .intro main > .section, .intro .navrow:not(.rise) { animation: sv-fade 250ms ease both; animation-delay: 0ms; }
+}

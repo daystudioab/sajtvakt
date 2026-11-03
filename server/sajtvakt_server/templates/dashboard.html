@@ -67,7 +67,7 @@
       <div class="group group-plain rise" style="--i: {{ loop.index0 + 3 }}">
       {% endif %}
       {% for s in g.sites %}{% set r = s.row %}
-        <a class="site-row {{ s.tone }} st-{{ s.kind or 'none' }}" href="/sajt/{{ r.id }}">
+        <a class="site-row {{ s.tone }} st-{{ s.kind or 'none' }}" href="/sajt/{{ r.id }}" style="--j: {{ loop.index0 }}">
           <span class="who">
             <span class="thumb">{% if s.shot %}<img src="{{ s.shot }}" alt="" loading="lazy" width="144" height="100">{% else %}<b aria-hidden="true">{{ r.name[:1] | upper }}</b>{% endif %}</span>
             <span class="names"><span class="name">{{ r.name }}</span><span class="host">{{ r.url | host }}</span></span>
