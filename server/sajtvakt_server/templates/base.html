@@ -4,34 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#f1efea">
+<meta name="theme-color" content="#f6f7f9">
 <title>{% block title %}Sajtvakt{% endblock %}</title>
-<link rel="preload" href="/static/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/sora-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/style.css?v={{ VERSION }}">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect x='1' y='1' width='26' height='26' rx='7' fill='%231f9d63'/%3E%3Cpath d='M6 15h4l2-5 4 9 2-4h4' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect x='1' y='1' width='26' height='26' rx='7' fill='%23171a26'/%3E%3Cpath d='M6 15h4l2-5 4 9 2-4h4' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
 {% block body %}
 <div class="shell">
-  <aside class="side">
-    <a class="brand" href="/">{{ LOGO }}<span class="bn"><b>Sajtvakt</b><span>Vakar över {{ side.sites }} {{ 'sajt' if side.sites == 1 else 'sajter' }}</span></span></a>
+  <header class="topbar">
+    <a class="brand" href="/">{{ LOGO }}<span>Sajtvakt</span></a>
+    <span class="today">{{ now | longdate }}</span>
     <nav aria-label="Huvudmeny">
-      <div class="navlabel">Arbete</div>
-      <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">{{ icon("sites") }}Översikt</a>
-      <a href="/handelser" class="{{ 'on' if request.url.path == '/handelser' }}">{{ icon("events") }}Händelser{% if side.attention %}<span class="count" aria-label="{{ side.attention }} att titta på">{{ side.attention }}</span>{% endif %}</a>
-      <div class="navlabel">Sajter</div>
-      <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">{{ icon("plugins") }}Tillägg</a>
-      <div class="navlabel">System</div>
-      <a href="/installningar" class="{{ 'on' if request.url.path == '/installningar' }}">{{ icon("settings") }}Inställningar</a>
+      <a href="/" class="{{ 'on' if request.url.path == '/' or request.url.path.startswith('/sajt') }}">Översikt</a>
+      <a href="/tillagg" class="{{ 'on' if request.url.path == '/tillagg' }}">Tillägg</a>
+      <a href="/handelser" class="{{ 'on' if request.url.path == '/handelser' }}">Händelser{% if side.attention %}<span class="count" aria-label="{{ side.attention }} att titta på">{{ side.attention }}</span>{% endif %}</a>
+      <a href="/installningar" class="{{ 'on' if request.url.path == '/installningar' }}">Inställningar</a>
     </nav>
-    <div class="foot">
-      <div class="meta-box">
-        <div class="meta"><span class="pdot {{ 'warn' if side.attention or side.disk_warn or not side.mail_ok }}"></span><span class="v">{{ 'Allt lugnt' if not side.attention else (side.attention ~ ' att titta på') }} · nästa {{ side.next_at }}</span></div>
-        <div class="meta"><span class="v {{ 'warn' if side.disk_warn or not side.mail_ok }}">Disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</span></div>
-      </div>
-      <form method="post" action="/logga-ut"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="linkbtn">{{ icon("logout") }}Logga ut</button></form>
+    <span class="spacer"></span>
+    <div class="chips">
+      <span class="chip"><span class="cdot {{ 'warn' if side.attention else 'ok' }}"></span>{{ 'Allt lugnt' if not side.attention else (side.attention ~ ' att titta på') }}</span>
+      <span class="chip">Nästa körning {{ side.next_at }}</span>
+      <span class="chip {{ 'warn' if side.disk_warn or not side.mail_ok }}">Disk {{ side.disk_pct }} % · e-post {{ 'ok' if side.mail_ok else 'av' }}</span>
     </div>
-  </aside>
+    <form method="post" action="/logga-ut" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn ghost small" title="Logga ut">{{ icon("logout") }}<span class="sr">Logga ut</span></button></form>
+  </header>
   <main>
     {% if flash %}<div class="flash {{ 'bad' if flash_bad }}" role="{{ 'alert' if flash_bad else 'status' }}">{{ flash }}</div>{% endif %}
     {% block content %}{% endblock %}

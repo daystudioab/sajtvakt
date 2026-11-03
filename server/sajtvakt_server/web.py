@@ -110,8 +110,10 @@ templates.env.globals["SHIELD"] = Markup(
     '<path d="m8.6 12.2 2.3 2.3 4.6-4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 templates.env.globals["LOGO"] = Markup(
-    '<svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="2" width="34" height="34" rx="10" fill="#1f9d63"/>'
-    '<path d="M8 20h5l3-7 5 12 3-6h6" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    '<svg viewBox="0 0 26 26" fill="none" aria-hidden="true"><defs><linearGradient id="svlg" x1="0" y1="0" x2="1" y2="1">'
+    '<stop offset="0" stop-color="#272c42"/><stop offset="1" stop-color="#12141e"/></linearGradient></defs>'
+    '<rect width="26" height="26" rx="8" fill="url(#svlg)"/>'
+    '<path d="M5.5 13.5h3.5l2-4.5 3.5 8 2-4h4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
 # Ikoner: Lucide (ISC-licens, lucide.dev) – 24 px rutnät, färgen ärvs (currentColor).
 _ICON_PATHS = {
@@ -664,7 +666,20 @@ def dashboard(request: Request, sort: str = "status"):
     pts = [(i * 40, round(40 - (m / max(top, 1)) * 34 - 3, 1)) for i, m in enumerate(mins) if m is not None]
     nights = {"points": " ".join(f"{x},{y}" for x, y in pts), "last": pts[-1] if pts else None,
               "tonight": mins[-1], "first": DAYS[week[0].weekday()], "lastday": DAYS[week[-1].weekday()], "n": len(have)}
-    return render(request, "dashboard.html", sites=sites, groups=groups, needs=needs, log=log, night=night,
+    # Undertexter till de fyra nyckeltalen.
+    ms = [s["row"]["response_ms"] for s in sites if s["row"]["up"] == 1 and s["row"]["response_ms"] and s["kind"] != "maint"]
+    last_night = db.one("SELECT MAX(finished) AS f FROM jobs WHERE kind='nightly' AND status='done' AND finished > ?", now - 20 * 3600)["f"]
+    with_upd = sum(1 for s in sites if s["updates"])
+    locked = sum(s["locked"] for s in sites)
+    tiles = {
+        "up": f"{down} nere" if down else (f"Alla svarar · snitt <b>{round(sum(ms) / len(ms))} ms</b>" if ms else "Alla svarar"),
+        "backup": (f"Klar {datetime.fromtimestamp(last_night, config.TZ):%H:%M}" + (f" · <b>{nights['tonight']} min</b> totalt" if nights["tonight"] is not None else ""))
+                  if last_night else "senaste dygnet",
+        "updates": (f"på <b>{with_upd}</b> {'sajt' if with_upd == 1 else 'sajter'}" if with_upd else "allt är uppdaterat") + (f" · {locked} låst" if locked else ""),
+        "stored": f"{int(db.setting('retention_days') or 30)} dagars backuper",
+    }
+    tiles = {k: Markup(v) for k, v in tiles.items()}  # Bara siffror och fast text – <b> får renderas.
+    return render(request, "dashboard.html", sites=sites, groups=groups, needs=needs, log=log, night=night, tiles=tiles,
                   modes=modes, mode_total=max(len(sites), 1), nights=nights,
                   totals=totals, mail_ok=mailer.configured(), backup_hour=backup_hour, sort="namn" if by_name else "status",
                   any_busy=any(s["job"] for s in sites), shots_on=shots.available(), LOG_ICONS=LOG_ICONS)
